@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { z } from 'zod'
-import { getDb, type MatchRequest } from '@/lib/db'
+import { getRequest, updateRequest } from '@/lib/db'
 import { voidAuthHold } from '@/lib/stripe'
 import { sendRequestFailed } from '@/lib/email'
 
@@ -22,15 +22,11 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: 'Invalid payload' }, { status: 400 })
   }
 
-  const db = getDb()
-  const request = db
-    .prepare(`SELECT * FROM match_requests WHERE id = ?`)
-    .get(parsed.data.requestId) as MatchRequest | undefined
-
+  const request = await getRequest(parsed.data.requestId)
   if (!request) {
     return NextResponse.json({ error: 'Request not found' }, { status: 404 })
   }
-  if (request.status !== 'pending') {
+  if (!['submitted', 'pending'].includes(request.status)) {
     return NextResponse.json(
       { error: `Request already ${request.status}` },
       { status: 400 }
@@ -48,11 +44,11 @@ export async function POST(req: NextRequest) {
   }
 
   const now = new Date().toISOString()
-  db.prepare(
-    `UPDATE match_requests
-     SET status = ?, admin_notes = ?, voided_at = ?
-     WHERE id = ?`
-  ).run('voided', parsed.data.reason || null, now, request.id)
+  await updateRequest(request.id, {
+    status: 'voided',
+    admin_notes: parsed.data.reason || null,
+    voided_at: now,
+  })
 
   sendRequestFailed({
     to: request.learner_email,

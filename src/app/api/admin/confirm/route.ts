@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { z } from 'zod'
-import { getDb, type MatchRequest } from '@/lib/db'
+import { getRequest, updateRequest } from '@/lib/db'
 import { getStripe, PRICE_CENTS } from '@/lib/stripe'
 import { sendPaymentLink } from '@/lib/email'
 
@@ -23,11 +23,7 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: 'Invalid payload' }, { status: 400 })
   }
 
-  const db = getDb()
-  const request = db
-    .prepare(`SELECT * FROM match_requests WHERE id = ?`)
-    .get(parsed.data.requestId) as MatchRequest | undefined
-
+  const request = await getRequest(parsed.data.requestId)
   if (!request) {
     return NextResponse.json({ error: 'Request not found' }, { status: 404 })
   }
@@ -43,7 +39,7 @@ export async function POST(req: NextRequest) {
 
   try {
     const stripe = getStripe()
-    const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3005'
+    const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://drivefindersg.uqlabs.co'
     const session = await stripe.checkout.sessions.create({
       mode: 'payment',
       payment_method_types: ['card'],
@@ -80,24 +76,19 @@ export async function POST(req: NextRequest) {
     const msg = e instanceof Error ? e.message : 'Unknown error'
     if (msg.includes('STRIPE_SECRET_KEY not set')) {
       console.warn('[confirm] Stripe not configured, simulating confirmation')
-      checkoutUrl = `http://localhost:3005/success?id=${request.id}&paid=1`
+      checkoutUrl = `${process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3005'}/success?id=${request.id}&paid=1`
     } else {
       console.error('[confirm] Stripe error:', msg)
       return NextResponse.json({ error: 'Payment link creation failed' }, { status: 500 })
     }
   }
 
-  db.prepare(
-    `UPDATE match_requests
-     SET status = ?, stripe_payment_intent_id = ?, matched_instructor_ids = ?, admin_notes = ?
-     WHERE id = ?`
-  ).run(
-    'confirmed',
-    paymentIntentId,
-    JSON.stringify(parsed.data.instructorIds),
-    parsed.data.notes || null,
-    request.id
-  )
+  await updateRequest(request.id, {
+    status: 'confirmed',
+    stripe_payment_intent_id: paymentIntentId,
+    matched_instructor_ids: JSON.stringify(parsed.data.instructorIds),
+    admin_notes: parsed.data.notes || null,
+  })
 
   if (checkoutUrl) {
     sendPaymentLink({

@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { z } from 'zod'
 import { randomUUID } from 'crypto'
-import { getDb } from '@/lib/db'
+import { createRequest, type MatchRequest } from '@/lib/db'
 import { sendRequestReceived, sendAdminNotification } from '@/lib/email'
 
 const Schema = z.object({
@@ -36,35 +36,29 @@ export async function POST(req: NextRequest) {
   const deadline = new Date(now.getTime() + 7 * 24 * 60 * 60 * 1000)
   const priceCents = parseInt(process.env.PRICE_AMOUNT_CENTS || '1900', 10)
 
-  const db = getDb()
+  const request: MatchRequest = {
+    id,
+    test_centre: data.test_centre,
+    transmission: data.transmission,
+    class_type: data.class_type,
+    learner_name: data.learner_name,
+    learner_phone: data.learner_phone,
+    learner_email: data.learner_email,
+    notes: data.notes || null,
+    status: 'submitted',
+    stripe_payment_intent_id: null,
+    amount_cents: priceCents,
+    matched_instructor_ids: null,
+    admin_notes: null,
+    created_at: now.toISOString(),
+    deadline_at: deadline.toISOString(),
+    delivered_at: null,
+    voided_at: null,
+    captured_at: null,
+  }
 
   try {
-    db.prepare(
-      `INSERT INTO match_requests
-       (id, test_centre, transmission, class_type, start_date, budget, language,
-        learner_name, learner_phone, learner_email, notes, status,
-        stripe_payment_intent_id, stripe_client_secret, amount_cents,
-        created_at, deadline_at)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
-    ).run(
-      id,
-      data.test_centre,
-      data.transmission,
-      data.class_type,
-      '',
-      '',
-      '',
-      data.learner_name,
-      data.learner_phone,
-      data.learner_email,
-      data.notes,
-      'submitted',
-      null,
-      null,
-      priceCents,
-      now.toISOString(),
-      deadline.toISOString()
-    )
+    await createRequest(request)
   } catch (e) {
     console.error('[request] DB error:', e)
     return NextResponse.json({ error: 'Failed to create request' }, { status: 500 })
