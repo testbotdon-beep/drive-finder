@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { getDb, type MatchRequest } from '@/lib/db'
+import { getRequest, updateRequest } from '@/lib/db'
 
 export async function POST(req: NextRequest) {
   const body = await req.json().catch(() => null)
@@ -8,20 +8,13 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: 'Missing requestId' }, { status: 400 })
   }
 
-  const db = getDb()
-  const request = db
-    .prepare(`SELECT * FROM match_requests WHERE id = ?`)
-    .get(requestId) as MatchRequest | undefined
-
+  const request = await getRequest(requestId)
   if (!request) {
     return NextResponse.json({ error: 'Not found' }, { status: 404 })
   }
 
   if (request.status === 'confirmed' && request.stripe_payment_intent_id) {
-    db.prepare(`UPDATE match_requests SET status = ? WHERE id = ?`).run(
-      'pending',
-      request.id
-    )
+    await updateRequest(request.id, { status: 'pending' })
     return NextResponse.json({ ok: true, status: 'pending' })
   }
 

@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { z } from 'zod'
-import { getDb, type MatchRequest, type Instructor } from '@/lib/db'
+import { getRequest, updateRequest, getInstructors } from '@/lib/db'
 import { captureAuthHold } from '@/lib/stripe'
 import { sendMatchesDelivered } from '@/lib/email'
 
@@ -23,11 +23,7 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: 'Invalid payload' }, { status: 400 })
   }
 
-  const db = getDb()
-  const request = db
-    .prepare(`SELECT * FROM match_requests WHERE id = ?`)
-    .get(parsed.data.requestId) as MatchRequest | undefined
-
+  const request = await getRequest(parsed.data.requestId)
   if (!request) {
     return NextResponse.json({ error: 'Request not found' }, { status: 404 })
   }
@@ -38,16 +34,14 @@ export async function POST(req: NextRequest) {
     )
   }
 
-  const placeholders = parsed.data.instructorIds.map(() => '?').join(',')
-  const instructors = db
-    .prepare(`SELECT * FROM instructors WHERE id IN (${placeholders})`)
-    .all(...parsed.data.instructorIds) as Instructor[]
+  const allInstructors = getInstructors()
+  const instructors = allInstructors.filter((i) => parsed.data.instructorIds.includes(i.id))
 
   if (instructors.length === 0) {
     return NextResponse.json({ error: 'No valid instructors' }, { status: 400 })
   }
 
-  let captureStatus = 'captured'
+  let captureStatus: string = 'captured'
   let captureError: string | null = null
 
   if (request.stripe_payment_intent_id) {
@@ -63,18 +57,13 @@ export async function POST(req: NextRequest) {
   }
 
   const now = new Date().toISOString()
-  db.prepare(
-    `UPDATE match_requests
-     SET status = ?, matched_instructor_ids = ?, admin_notes = ?, delivered_at = ?, captured_at = ?
-     WHERE id = ?`
-  ).run(
-    captureStatus,
-    JSON.stringify(parsed.data.instructorIds),
-    parsed.data.notes || null,
-    now,
-    captureStatus === 'captured' ? now : null,
-    request.id
-  )
+  await updateRequest(request.id, {
+    status: captureStatus as 'captured' | 'delivered',
+    matched_instructor_ids: JSON.stringify(parsed.data.instructorIds),
+    admin_notes: parsed.data.notes || null,
+    delivered_at: now,
+    captured_at: captureStatus === 'captured' ? now : null,
+  })
 
   sendMatchesDelivered({
     to: request.learner_email,
@@ -88,9 +77,5 @@ export async function POST(req: NextRequest) {
     })),
   }).catch((e) => console.error('[deliver] email error:', e))
 
-  return NextResponse.json({
-    ok: true,
-    status: captureStatus,
-    captureError,
-  })
+  return NextResponse.json({ ok: true, status: captureStatus, captureError })
 }
