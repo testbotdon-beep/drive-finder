@@ -13,7 +13,7 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: 'Not found' }, { status: 404 })
   }
 
-  if (request.status === 'confirmed' && request.stripe_payment_intent_id) {
+  if (request.status === 'confirmed') {
     await updateRequest(request.id, { status: 'pending' })
     return NextResponse.json({ ok: true, status: 'pending' })
   }

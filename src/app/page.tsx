@@ -40,40 +40,38 @@ function Header() {
 
 function Hero() {
   return (
-    <section className="pt-32 pb-20 md:pt-44 md:pb-28 relative overflow-hidden">
-      <div className="absolute inset-0 bg-gradient-to-b from-slate-50 via-white to-white" />
+    <section className="pt-32 pb-20 md:pt-44 md:pb-28 relative overflow-hidden bg-[#0a1628]">
+      <div className="absolute inset-0 bg-[radial-gradient(ellipse_60%_50%_at_50%_0%,rgba(16,185,129,0.1),transparent_70%)]" />
 
       <div className="container-page relative">
         <div className="max-w-3xl mx-auto text-center">
-          <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-emerald-50 border border-emerald-100 text-emerald-700 text-xs font-semibold mb-8">
+          <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-white/5 border border-white/10 text-emerald-400 text-xs font-semibold mb-8">
             <span className="relative flex h-2 w-2">
               <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75" />
               <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500" />
             </span>
-            118 verified instructors across BBDC, CDC and SSDC
+            Matching learners with instructors right now
           </div>
 
-          <h1 className="heading-display text-[2.5rem] md:text-[3.5rem] lg:text-[4rem] text-slate-900 mb-6 text-balance leading-[1.08]">
+          <h1 className="heading-display text-[2.5rem] md:text-[3.5rem] lg:text-[4rem] text-white mb-6 text-balance leading-[1.08]">
             Your next driving instructor
             <br className="hidden sm:block" />
-            is expecting your call.
+            is ready for your call.
           </h1>
 
-          <p className="text-lg md:text-xl text-slate-500 max-w-lg mx-auto mb-10 leading-relaxed">
+          <p className="text-lg md:text-xl text-slate-400 max-w-lg mx-auto mb-10 leading-relaxed">
             Tell us your test centre. We contact the best private instructors,
-            confirm who has capacity, and introduce you personally.
+            confirm who has capacity, and send you their details.
           </p>
 
-          <a href="#get-started" className="btn-primary btn-cta text-base inline-flex">
+          <a href="#get-started" className="btn-cta text-base inline-flex">
             Find My Instructor
           </a>
 
-          <div className="flex items-center justify-center gap-6 mt-8 text-[13px] text-slate-400 font-medium">
+          <div className="flex items-center justify-center gap-6 mt-8 text-[13px] text-slate-500 font-medium">
             <span>Free to submit</span>
-            <span className="h-1 w-1 rounded-full bg-slate-300" />
+            <span className="h-1 w-1 rounded-full bg-slate-600" />
             <span>Pay only when confirmed</span>
-            <span className="h-1 w-1 rounded-full bg-slate-300" />
-            <span>$19 flat</span>
           </div>
         </div>
       </div>
@@ -87,11 +85,11 @@ function DataBadge() {
       <div className="container-page flex flex-col sm:flex-row items-center justify-center gap-4 sm:gap-8 text-xs text-slate-400 font-medium">
         <div className="flex items-center gap-2">
           <svg className="w-4 h-4 text-slate-300" fill="currentColor" viewBox="0 0 24 24"><path d="M12 1L3 5v6c0 5.55 3.84 10.74 9 12 5.16-1.26 9-6.45 9-12V5l-9-4z"/></svg>
-          <span>Pass rate data from Singapore Police Force</span>
+          <span>Official pass rate data</span>
         </div>
         <div className="flex items-center gap-2">
           <span className="h-1.5 w-1.5 rounded-full bg-emerald-500" />
-          <span>Updated weekly</span>
+          <span>100+ verified instructors, updated weekly</span>
         </div>
       </div>
     </section>
@@ -119,13 +117,13 @@ function HowItWorks() {
           <StepCard
             n="02"
             title="We check who's available"
-            desc="We go through our network of 118 verified instructors, WhatsApp the best matches, and confirm who's actually taking students. We get back to you within a week."
+            desc="We go through our network of 100+ verified instructors, WhatsApp the best matches, and confirm who's actually taking students. We get back to you within a week."
             accent="from-blue-500/10 to-blue-500/0"
           />
           <StepCard
             n="03"
             title="You pay, we introduce"
-            desc="If we found you 2 to 3 good matches, we send you a $19 payment link. Once you pay, we email you their details with a warm intro so they're expecting your message."
+            desc="If we found you 2 to 3 good matches, we send you a $19 payment link. Once you pay, we send you their name, number, and pass rate so you can contact them directly."
             accent="from-violet-500/10 to-violet-500/0"
           />
         </div>
@@ -180,7 +178,7 @@ function ProblemSection() {
     {
       icon: (
         <svg className="w-6 h-6" fill="none" stroke="currentColor" strokeWidth="1.5" viewBox="0 0 24 24">
-          <path strokeLinecap="round" strokeLinejoin="round" d="M12 6v6h4.5m4.5 0a9 9 0 11-18 0 9 9 0 0118 0z" />
+          <path strokeLinecap="round" strokeLinejoin="round" d="M12 6v6h4.5m4.5 0a9 9 0 11-18 0 9 9 0 0100+ 0z" />
         </svg>
       ),
       title: 'Good ones are fully booked',
@@ -193,7 +191,7 @@ function ProblemSection() {
         </svg>
       ),
       title: 'No new instructors since 1987',
-      desc: 'The Singapore government stopped issuing private instructor licences 39 years ago. The pool only shrinks from here.',
+      desc: 'No new private instructor licences have been issued since 1987. The pool only shrinks from here.',
     },
   ]
   return (
@@ -248,7 +246,7 @@ function TrustStrip() {
     <section className="py-16 bg-slate-900">
       <div className="container-page">
         <div className="grid grid-cols-2 md:grid-cols-4 gap-8 md:gap-12">
-          <TrustStat value="118" label="Verified instructors" color="emerald" />
+          <TrustStat value="100+" label="Verified instructors" color="emerald" />
           <TrustStat value="$19" label="Only after we confirm" color="white" />
           <TrustStat value="7 days" label="Response time" color="white" />
           <TrustStat value="$0" label="If we can't match you" color="emerald" />
@@ -271,21 +269,17 @@ function TrustStat({ value, label, color }: { value: string; label: string; colo
 
 function FAQSection() {
   const faqs = [
-    {
-      q: 'Why only $19? Other services charge $89 to $109.',
-      a: "We're launching and want volume plus social proof. This is the early bird rate. It will go up.",
-    },
-    {
+{
       q: "When exactly do I pay?",
       a: "You don't pay anything when you submit the form. We first check if we have instructors that match what you need. If we do, we send you a $19 payment link by email. If we can't find anyone, you never pay.",
     },
     {
       q: "How do I receive my matches?",
-      a: "Once you pay the $19, we email you 2 to 3 instructor details (name, phone number, pass rate) along with a warm introduction. We've already told them about you so they'll be expecting your message.",
+      a: "Once you pay the $19, we send you 2 to 3 instructor details (name, phone number, pass rate) so you can contact them directly.",
     },
     {
       q: "What if I don't like the matches?",
-      a: "The $19 covers research plus warm intros. If you genuinely feel we sent bad matches, email us within a week and we'll review individually. We want five star reviews more than $19.",
+      a: "The $19 covers the research and matching. If you genuinely feel we sent bad matches, reach out within a week and we'll review individually. We want five star reviews more than $19.",
     },
     {
       q: 'Which driving centres do you cover?',
@@ -295,11 +289,7 @@ function FAQSection() {
       q: 'What about motorcycles (Class 2B)?',
       a: 'There are no private instructors for motorcycle classes in Singapore. You have to enrol through one of the three driving schools. We match for cars only.',
     },
-    {
-      q: 'How up to date is your instructor data?',
-      a: 'We update our instructor database weekly using official pass rate data published by the Singapore Police Force. The current dataset covers January to December 2025.',
-    },
-    {
+{
       q: 'Is my data safe?',
       a: 'We only share your first name and phone number with matched instructors. We never sell data, never spam, and delete records on request. Fully PDPA compliant.',
     },
@@ -365,7 +355,7 @@ function Footer() {
             <LogoFull />
             <p className="text-sm text-slate-400 mt-3 max-w-xs">
               Concierge matching for Singapore private driving instructors.
-              Powered by official SPF pass rate data.
+              Powered by official pass rate data.
             </p>
           </div>
           <div className="flex gap-12 text-sm">
@@ -382,14 +372,14 @@ function Footer() {
               <div className="space-y-2 text-slate-500">
                 <Link href="/terms" className="block hover:text-slate-900 transition-colors">Terms of Service</Link>
                 <Link href="/privacy" className="block hover:text-slate-900 transition-colors">Privacy Policy</Link>
-                <a href="mailto:hello@uqlabs.co" className="block hover:text-slate-900 transition-colors">Contact</a>
+{/* no refund policy link */}
               </div>
             </div>
           </div>
         </div>
         <div className="mt-10 pt-6 border-t border-slate-200/60 flex flex-col md:flex-row items-center justify-between gap-2 text-xs text-slate-400">
           <div>&copy; {new Date().getFullYear()} Drive Finder SG. A Uniq Labs project.</div>
-          <div>Not affiliated with Singapore Traffic Police or any government agency.</div>
+          <div>Not affiliated with any driving centre or regulatory body.</div>
         </div>
       </div>
     </footer>

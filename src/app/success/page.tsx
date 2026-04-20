@@ -55,7 +55,7 @@ function SuccessContent() {
               </p>
               <InfoRow
                 title="What happens next"
-                desc="We'll send you 2 to 3 verified instructor details with warm introductions via email. They're expecting your message."
+                desc="We'll send you 2 to 3 verified instructor details (name, number, pass rate) so you can contact them directly."
               />
             </>
           ) : (
@@ -72,8 +72,8 @@ function SuccessContent() {
                   desc="You haven't been charged. We'll only send a payment link if we confirm we can match you."
                 />
                 <InfoRow
-                  title="Check your email"
-                  desc="We sent a confirmation. We'll also reach out on WhatsApp if we need more info."
+                  title="We'll reach out on WhatsApp"
+                  desc="We'll message you on WhatsApp within 7 days to confirm your match or ask any follow up questions."
                 />
               </div>
             </>

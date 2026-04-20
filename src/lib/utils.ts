@@ -13,10 +13,10 @@ export function formatSGD(cents: number): string {
   }).format(cents / 100)
 }
 
-export function formatPhone(phone: string): string {
-  const digits = phone.replace(/\D/g, '')
+export function formatPhone(phone: string | number): string {
+  const digits = String(phone).replace(/\D/g, '')
   if (digits.length === 8) return `${digits.slice(0, 4)} ${digits.slice(4)}`
-  return phone
+  return String(phone)
 }
 
 export function timeRemaining(deadlineIso: string): {

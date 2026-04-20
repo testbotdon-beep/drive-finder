@@ -470,26 +470,6 @@
     "pass_rate": 0.25
   },
   {
-    "name": "TAN BENG GUAN, JOHN",
-    "phone": "",
-    "test_centre": "CDC",
-    "class_type": "3",
-    "transmission": "manual",
-    "tested": 58,
-    "passed": 14,
-    "pass_rate": 0.24
-  },
-  {
-    "name": "TAN HOW MENG",
-    "phone": "",
-    "test_centre": "CDC",
-    "class_type": "3",
-    "transmission": "manual",
-    "tested": 38,
-    "passed": 9,
-    "pass_rate": 0.24
-  },
-  {
     "name": "SEOW KOON CHENG",
     "phone": "96545889",
     "test_centre": "CDC",
@@ -820,16 +800,6 @@
     "pass_rate": 0.27
   },
   {
-    "name": "LIEW WEE KEONG",
-    "phone": "",
-    "test_centre": "CDC",
-    "class_type": "3A",
-    "transmission": "auto",
-    "tested": 82,
-    "passed": 22,
-    "pass_rate": 0.27
-  },
-  {
     "name": "ONG THIAM CHAI",
     "phone": "96848025",
     "test_centre": "CDC",
@@ -1148,16 +1118,6 @@
     "tested": 86,
     "passed": 19,
     "pass_rate": 0.22
-  },
-  {
-    "name": "TAN HOW MENG",
-    "phone": "",
-    "test_centre": "SSDC",
-    "class_type": "3A",
-    "transmission": "auto",
-    "tested": 84,
-    "passed": 18,
-    "pass_rate": 0.21
   },
   {
     "name": "SOON KIAW GUAN",

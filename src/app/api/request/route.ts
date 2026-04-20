@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { z } from 'zod'
 import { randomUUID } from 'crypto'
 import { createRequest, type MatchRequest } from '@/lib/db'
-import { sendRequestReceived, sendAdminNotification } from '@/lib/email'
+// Emails removed. Don sends payment links manually via WhatsApp.
 
 const Schema = z.object({
   test_centre: z.enum(['BBDC', 'CDC', 'SSDC', 'ANY']),
@@ -63,20 +63,6 @@ export async function POST(req: NextRequest) {
     console.error('[request] DB error:', e)
     return NextResponse.json({ error: 'Failed to create request' }, { status: 500 })
   }
-
-  sendRequestReceived({
-    to: data.learner_email,
-    name: data.learner_name,
-    requestId: id,
-  }).catch((e) => console.error('[request] email error:', e))
-
-  sendAdminNotification({
-    requestId: id,
-    learnerName: data.learner_name,
-    testCentre: data.test_centre,
-    transmission: data.transmission,
-    notes: data.notes,
-  }).catch((e) => console.error('[request] admin notify error:', e))
 
   return NextResponse.json({ ok: true, requestId: id })
 }

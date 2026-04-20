@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { z } from 'zod'
 import { getRequest, updateRequest } from '@/lib/db'
 import { voidAuthHold } from '@/lib/stripe'
-import { sendRequestFailed } from '@/lib/email'
+// Rejection notification sent manually via WhatsApp
 
 const Schema = z.object({
   requestId: z.string().min(1),
@@ -49,11 +49,6 @@ export async function POST(req: NextRequest) {
     admin_notes: parsed.data.reason || null,
     voided_at: now,
   })
-
-  sendRequestFailed({
-    to: request.learner_email,
-    name: request.learner_name,
-  }).catch((e) => console.error('[fail] email error:', e))
 
   return NextResponse.json({ ok: true, voidError })
 }

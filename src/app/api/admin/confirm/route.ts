@@ -2,7 +2,6 @@ import { NextRequest, NextResponse } from 'next/server'
 import { z } from 'zod'
 import { getRequest, updateRequest } from '@/lib/db'
 import { getStripe, PRICE_CENTS } from '@/lib/stripe'
-import { sendPaymentLink } from '@/lib/email'
 
 const Schema = z.object({
   requestId: z.string().min(1),
@@ -89,14 +88,6 @@ export async function POST(req: NextRequest) {
     matched_instructor_ids: JSON.stringify(parsed.data.instructorIds),
     admin_notes: parsed.data.notes || null,
   })
-
-  if (checkoutUrl) {
-    sendPaymentLink({
-      to: request.learner_email,
-      name: request.learner_name,
-      paymentUrl: checkoutUrl,
-    }).catch((e) => console.error('[confirm] email error:', e))
-  }
 
   return NextResponse.json({ ok: true, checkoutUrl })
 }

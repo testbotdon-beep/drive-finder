@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { listRequestsByStatus, updateRequest } from '@/lib/db'
 import { voidAuthHold } from '@/lib/stripe'
-import { sendRequestFailed } from '@/lib/email'
+// No email sending
 
 export async function GET(req: NextRequest) {
   const auth = req.headers.get('authorization')
@@ -36,10 +36,6 @@ export async function GET(req: NextRequest) {
       voided_at: now,
       admin_notes: (r.admin_notes || '') + ' [auto-voided: deadline passed]',
     })
-
-    sendRequestFailed({ to: r.learner_email, name: r.learner_name }).catch(
-      (e) => console.error('[cron] email error:', e)
-    )
 
     results.push({ id: r.id, voided, error })
   }
