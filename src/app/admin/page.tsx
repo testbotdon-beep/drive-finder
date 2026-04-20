@@ -453,6 +453,13 @@ function RequestCard({
   }
 
   async function deliver() {
+    const classLabel = request.class_type === '3' ? 'Class 3 MANUAL' : 'Class 3A AUTO'
+    const ok = window.confirm(
+      `Verify before delivering:\n\n` +
+      `Buyer wants: ${classLabel} at ${request.test_centre}\n\n` +
+      `Did you confirm availability with the instructor(s) for THIS class and transmission?`
+    )
+    if (!ok) return
     setBusy(true)
     try {
       const ids = request.matched_instructor_ids
@@ -694,6 +701,10 @@ function RequestCard({
       {/* Actionable: submitted, confirmed, or pending */}
       {(['submitted', 'confirmed', 'pending'].includes(request.status)) && (
         <>
+          <div className="mb-3 px-3 py-2 bg-amber-500/10 border border-amber-500/30 rounded-lg text-xs font-semibold text-amber-300 flex items-center gap-2">
+            <span>VERIFY WITH PDI:</span>
+            <span className="text-white">{request.class_type === '3' ? 'Class 3 MANUAL' : 'Class 3A AUTO'} at {request.test_centre}</span>
+          </div>
           <div className="mb-4">
             <div className="text-[11px] font-bold text-slate-500 uppercase tracking-widest mb-3">
               {request.status === 'submitted' ? `Matching instructors (${suggested.length})` : 'Ready to deliver'}
