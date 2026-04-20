@@ -487,6 +487,23 @@ function RequestCard({
     finally { setBusy(false) }
   }
 
+  async function reopen() {
+    if (!window.confirm(`Move ${request.learner_name} back to active?`)) return
+    setBusy(true)
+    try {
+      const res = await fetch('/api/admin/reopen', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${password}` },
+        body: JSON.stringify({ requestId: request.id }),
+      })
+      const data = await res.json()
+      if (!res.ok) throw new Error(data.error || 'Failed')
+      toast.success('Moved back to active')
+      onChange()
+    } catch (e) { toast.error(e instanceof Error ? e.message : 'Failed') }
+    finally { setBusy(false) }
+  }
+
   const phone = String(request.learner_phone)
 
   return (
@@ -765,17 +782,28 @@ function RequestCard({
       )}
 
       {/* Completed states */}
-      {!['submitted', 'confirmed', 'pending'].includes(request.status) && request.matched_instructor_ids && (
-        <div className="text-sm text-slate-500">
-          <span className="font-medium text-slate-400">Matched: </span>
-          {(() => {
-            try {
-              const parsed = Array.isArray(request.matched_instructor_ids) ? request.matched_instructor_ids : JSON.parse(request.matched_instructor_ids)
-              return (parsed as string[])
-                .map((id) => instructors.find((i) => i.id === id)?.name || id)
-                .join(', ')
-            } catch { return request.matched_instructor_ids }
-          })()}
+      {!['submitted', 'confirmed', 'pending'].includes(request.status) && (
+        <div className="flex items-start justify-between gap-4">
+          {request.matched_instructor_ids ? (
+            <div className="text-sm text-slate-500 flex-1">
+              <span className="font-medium text-slate-400">Matched: </span>
+              {(() => {
+                try {
+                  const parsed = Array.isArray(request.matched_instructor_ids) ? request.matched_instructor_ids : JSON.parse(request.matched_instructor_ids)
+                  return (parsed as string[])
+                    .map((id) => instructors.find((i) => i.id === id)?.name || id)
+                    .join(', ')
+                } catch { return request.matched_instructor_ids }
+              })()}
+            </div>
+          ) : <div className="flex-1" />}
+          <button
+            onClick={reopen}
+            disabled={busy}
+            className="px-3 py-1.5 rounded-lg bg-blue-500/15 hover:bg-blue-500/25 text-blue-400 text-xs font-semibold border border-blue-500/30 transition disabled:opacity-40 whitespace-nowrap"
+          >
+            {busy ? 'Working...' : 'Reopen'}
+          </button>
         </div>
       )}
 
