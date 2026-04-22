@@ -14,3 +14,4 @@ dist/
 .turbo
 tsconfig.tsbuildinfo
 next-env.d.ts
+marketing/
