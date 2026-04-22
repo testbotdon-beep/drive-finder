@@ -6,6 +6,7 @@ const Schema = z.object({
   requestId: z.string().min(1),
   instructorIds: z.array(z.string()).min(1).max(5),
   notes: z.string().max(500).optional(),
+  amount_cents: z.number().int().nonnegative().optional(),
 })
 
 export async function POST(req: NextRequest) {
@@ -36,12 +37,22 @@ export async function POST(req: NextRequest) {
   const instructors = allInstructors.filter((i) => parsed.data.instructorIds.includes(i.id))
 
   const now = new Date().toISOString()
-  await updateRequest(request.id, {
+  const updates: Partial<{
+    status: string
+    matched_instructor_ids: string
+    admin_notes: string | null
+    delivered_at: string
+    amount_cents: number
+  }> = {
     status: 'delivered',
     matched_instructor_ids: JSON.stringify(parsed.data.instructorIds),
     admin_notes: parsed.data.notes || null,
     delivered_at: now,
-  })
+  }
+  if (parsed.data.amount_cents !== undefined) {
+    updates.amount_cents = parsed.data.amount_cents
+  }
+  await updateRequest(request.id, updates as Parameters<typeof updateRequest>[1])
 
   return NextResponse.json({ ok: true, status: 'delivered' })
 }

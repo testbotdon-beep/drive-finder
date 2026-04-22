@@ -36,10 +36,15 @@ export async function POST(req: NextRequest) {
   if (body.stage !== undefined) updates.stage = body.stage
   if (body.notes !== undefined) updates.notes = body.notes
   if (body.follow_up_at !== undefined) updates.follow_up_at = body.follow_up_at
+  if (body.earned_cents !== undefined) updates.earned_cents = String(body.earned_cents)
 
   if (body.follow_up_at === '') {
     await redis.hdel(`${PREFIX}${body.requestId}`, 'follow_up_at')
     delete updates.follow_up_at
+  }
+  if (body.earned_cents === '' || body.earned_cents === null) {
+    await redis.hdel(`${PREFIX}${body.requestId}`, 'earned_cents')
+    delete updates.earned_cents
   }
 
   if (Object.keys(updates).length > 0) {

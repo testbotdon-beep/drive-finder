@@ -156,8 +156,11 @@ function Dashboard({ password, onLogout }: { password: string; onLogout: () => v
 
   const totalEarned = requests.reduce((sum, r) => {
     const delivered = completedStatuses.includes(r.status)
-    const base = delivered ? (typeof r.amount_cents === 'number' ? r.amount_cents : parseInt(String(r.amount_cents), 10) || 0) : 0
+    if (!delivered) return sum
     const meta = metaMap[r.id]
+    const override = meta?.earned_cents ? parseInt(String(meta.earned_cents), 10) : NaN
+    if (Number.isFinite(override)) return sum + override
+    const base = typeof r.amount_cents === 'number' ? r.amount_cents : parseInt(String(r.amount_cents), 10) || 0
     const round2Paid = meta && String(meta.round) === '2' && meta.stage === 'paid' ? 1000 : 0
     return sum + base + round2Paid
   }, 0)
@@ -360,6 +363,7 @@ function RequestCard({
   const [stage, setStage] = useState('')
   const [stageNotes, setStageNotes] = useState('')
   const [followUpAt, setFollowUpAt] = useState('')
+  const [earnedCents, setEarnedCents] = useState<number | null>(null)
   const [metaLoaded, setMetaLoaded] = useState(false)
 
   useEffect(() => {
@@ -374,6 +378,8 @@ function RequestCard({
             setStage(String(d.meta.stage || ''))
             setStageNotes(String(d.meta.notes || ''))
             setFollowUpAt(String(d.meta.follow_up_at || ''))
+            const ec = d.meta.earned_cents ? parseInt(String(d.meta.earned_cents), 10) : NaN
+            setEarnedCents(Number.isFinite(ec) ? ec : null)
           }
           setMetaLoaded(true)
         })
@@ -381,11 +387,12 @@ function RequestCard({
     }
   }, [request.id, password, metaLoaded])
 
-  function saveMeta(updates: { round?: number; stage?: string; notes?: string; follow_up_at?: string }) {
+  function saveMeta(updates: { round?: number; stage?: string; notes?: string; follow_up_at?: string; earned_cents?: number | null }) {
     if (updates.round !== undefined) setRound(updates.round)
     if (updates.stage !== undefined) setStage(updates.stage)
     if (updates.notes !== undefined) setStageNotes(updates.notes)
     if (updates.follow_up_at !== undefined) setFollowUpAt(updates.follow_up_at)
+    if (updates.earned_cents !== undefined) setEarnedCents(updates.earned_cents)
     fetch('/api/admin/update-notes', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${password}` },
@@ -454,9 +461,12 @@ function RequestCard({
 
   async function deliver() {
     const classLabel = `Class ${request.class_type} ${String(request.transmission).toUpperCase()}`
+    const baseAmount = typeof request.amount_cents === 'number' ? request.amount_cents : parseInt(String(request.amount_cents), 10) || 0
+    const finalAmount = earnedCents ?? baseAmount
     const ok = window.confirm(
       `Verify before delivering:\n\n` +
-      `Buyer wants: ${classLabel} at ${request.test_centre}\n\n` +
+      `Buyer wants: ${classLabel} at ${request.test_centre}\n` +
+      `Earned from this customer: ${formatSGD(finalAmount)}\n\n` +
       `Did you confirm availability with the instructor(s) for THIS class and transmission?`
     )
     if (!ok) return
@@ -468,7 +478,12 @@ function RequestCard({
       const res = await fetch('/api/admin/deliver', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${password}` },
-        body: JSON.stringify({ requestId: request.id, instructorIds: ids, notes }),
+        body: JSON.stringify({
+          requestId: request.id,
+          instructorIds: ids,
+          notes,
+          ...(earnedCents !== null ? { amount_cents: earnedCents } : {}),
+        }),
       })
       const data = await res.json()
       if (!res.ok) throw new Error(data.error || 'Failed')
@@ -708,6 +723,52 @@ function RequestCard({
         </div>
       )}
 
+      {/* Earned amount tracker */}
+      {(['submitted', 'confirmed', 'pending'].includes(request.status)) && metaLoaded && (() => {
+        const baseAmount = typeof request.amount_cents === 'number' ? request.amount_cents : parseInt(String(request.amount_cents), 10) || 0
+        const currentAmount = earnedCents ?? baseAmount
+        return (
+          <div className="mb-4 px-3 py-2.5 bg-emerald-500/5 border border-emerald-500/20 rounded-lg flex items-center gap-2 flex-wrap">
+            <span className="text-[10px] font-bold text-emerald-500 uppercase tracking-widest">Earned</span>
+            <span className="text-xl font-extrabold text-emerald-400">{formatSGD(currentAmount)}</span>
+            <div className="flex items-center gap-1 ml-auto flex-wrap">
+              <button
+                onClick={() => saveMeta({ earned_cents: currentAmount + 1000 })}
+                className="px-2 py-1 rounded-md text-[11px] font-semibold bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-300 border border-emerald-500/20 transition"
+              >
+                + $10
+              </button>
+              <button
+                onClick={() => saveMeta({ earned_cents: currentAmount + 2000 })}
+                className="px-2 py-1 rounded-md text-[11px] font-semibold bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-300 border border-emerald-500/20 transition"
+              >
+                + $20
+              </button>
+              <button
+                onClick={() => {
+                  const v = window.prompt('Set total earned amount in SGD (e.g. 49 for $49)', String(currentAmount / 100))
+                  if (v === null) return
+                  const n = Number(v)
+                  if (!Number.isFinite(n) || n < 0) { alert('Invalid amount'); return }
+                  saveMeta({ earned_cents: Math.round(n * 100) })
+                }}
+                className="px-2 py-1 rounded-md text-[11px] font-semibold bg-white/5 hover:bg-white/10 text-slate-400 border border-white/10 transition"
+              >
+                Set
+              </button>
+              {earnedCents !== null && earnedCents !== baseAmount && (
+                <button
+                  onClick={() => saveMeta({ earned_cents: null })}
+                  className="px-2 py-1 rounded-md text-[11px] font-semibold bg-red-500/10 hover:bg-red-500/20 text-red-400 border border-red-500/20 transition"
+                >
+                  Reset to {formatSGD(baseAmount)}
+                </button>
+              )}
+            </div>
+          </div>
+        )
+      })()}
+
       {/* Confirmed waiting for payment */}
       {request.status === 'confirmed' && (
         <div className="p-4 bg-purple-500/10 border border-purple-500/20 rounded-xl mb-4">
@@ -798,7 +859,7 @@ function RequestCard({
           <div className="flex flex-wrap gap-2">
             <button onClick={deliver} disabled={busy || selected.size === 0}
               className="px-4 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white text-sm font-semibold transition disabled:opacity-40 disabled:cursor-not-allowed">
-              {busy ? 'Working...' : `Mark as Delivered (${selected.size})`}
+              {busy ? 'Working...' : `Deliver @ ${formatSGD(earnedCents ?? (typeof request.amount_cents === 'number' ? request.amount_cents : parseInt(String(request.amount_cents), 10) || 0))} (${selected.size})`}
             </button>
             <button onClick={() => setShowFail(!showFail)} disabled={busy}
               className="px-4 py-2.5 rounded-xl bg-white/5 border border-white/10 text-slate-400 hover:text-white text-sm font-medium transition">
