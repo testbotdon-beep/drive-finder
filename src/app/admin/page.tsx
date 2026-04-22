@@ -453,7 +453,7 @@ function RequestCard({
   }
 
   async function deliver() {
-    const classLabel = request.class_type === '3' ? 'Class 3 MANUAL' : 'Class 3A AUTO'
+    const classLabel = `Class ${request.class_type} ${String(request.transmission).toUpperCase()}`
     const ok = window.confirm(
       `Verify before delivering:\n\n` +
       `Buyer wants: ${classLabel} at ${request.test_centre}\n\n` +
@@ -561,6 +561,37 @@ function RequestCard({
         <Tag>Class {request.class_type} ({request.transmission})</Tag>
         <Tag>{formatSGD(typeof request.amount_cents === 'number' ? request.amount_cents : parseInt(String(request.amount_cents), 10) || 0)}</Tag>
       </div>
+
+      {/* WA Templates */}
+      {(['submitted', 'confirmed', 'pending'].includes(request.status)) && (() => {
+        const firstName = (request.learner_name || '').split(' ')[0] || request.learner_name
+        const centre = request.test_centre
+        const transmission = String(request.transmission || '').toLowerCase()
+        const wphone = String(request.learner_phone).replace(/\D/g, '')
+        const otherCentres = ['BBDC', 'CDC', 'SSDC'].filter((c) => c !== centre).join(' or ') || 'other centres'
+        const wa = (text: string) => `https://wa.me/65${wphone}?text=${encodeURIComponent(text)}`
+
+        const templates = {
+          followUp: `Hi ${firstName}, following up on if you'd like to proceed with us sending you the PDI's contact. Please do let us know, thanks!`,
+          matchFound: `Hi ${firstName}, good news!\n\nWe found an available instructor for you at ${centre}. He is amongst the higher first time pass rate based on records and is taking students now. Please have a look at the screenshot below for proof of our conversation with the PDI.\n\nTo get his details to message him, please PayNow $19 to UEN: 202446262C. Name of recipient should automatically show Uniq Labs PTE LTD upon UEN entry.\n\nPlease let us know once paid, and upon confirmation we'll send you his details right away.\n\nCongrats, and all the best for your driving journey!`,
+          round2Offer: `Hey ${firstName}, just an update. I checked with the top rated instructors at ${centre} for ${transmission} and they all seem to be fully booked at the moment.\n\nI do have a few more instructors at ${centre} that I can check with slightly lower pass rates, or I can check other centres like ${otherCentres} for you.\n\nPlease note that either option will cost $10. Let me know which you'd prefer or if you'd like to leave it for now, no worries either way!`,
+          round2Paid: `Ok great, please PayNow $10 to UEN: 202446262C. Name of recipient should automatically show Uniq Labs PTE LTD upon UEN entry.\n\nPlease let us know once paid, and upon confirmation we'll start right away!`,
+          noneFound: `Hey ${firstName}, unfortunately after checking all the manual/auto PDIs at ${centre}, none have slots right now. Wish we had better news. Holler if anything else comes up on your end.`,
+        }
+
+        return (
+          <div className="mb-4">
+            <div className="text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-2">Message {firstName} on WhatsApp</div>
+            <div className="flex flex-wrap gap-1.5">
+              <TplBtn href={wa(templates.followUp)} color="blue">Follow Up</TplBtn>
+              <TplBtn href={wa(templates.matchFound)} color="emerald">Match Found + $19 PayNow</TplBtn>
+              <TplBtn href={wa(templates.round2Offer)} color="amber">Round 2 Offer ($10)</TplBtn>
+              <TplBtn href={wa(templates.round2Paid)} color="purple">Round 2 PayNow $10</TplBtn>
+              <TplBtn href={wa(templates.noneFound)} color="slate">No PDI Found, Close</TplBtn>
+            </div>
+          </div>
+        )
+      })()}
 
       {/* Round & Stage Tracker */}
       {(['submitted', 'confirmed', 'pending'].includes(request.status)) && metaLoaded && (
@@ -703,7 +734,7 @@ function RequestCard({
         <>
           <div className="mb-3 px-3 py-2 bg-amber-500/10 border border-amber-500/30 rounded-lg text-xs font-semibold text-amber-300 flex items-center gap-2">
             <span>VERIFY WITH PDI:</span>
-            <span className="text-white">{request.class_type === '3' ? 'Class 3 MANUAL' : 'Class 3A AUTO'} at {request.test_centre}</span>
+            <span className="text-white">Class {request.class_type} {String(request.transmission).toUpperCase()} at {request.test_centre}</span>
           </div>
           <div className="mb-4">
             <div className="text-[11px] font-bold text-slate-500 uppercase tracking-widest mb-3">
@@ -847,5 +878,25 @@ function Tag({ children }: { children: React.ReactNode }) {
     <span className="px-2.5 py-1 rounded-lg bg-white/5 border border-white/5 text-slate-300 text-xs font-medium">
       {children}
     </span>
+  )
+}
+
+function TplBtn({ href, color, children }: { href: string; color: 'blue' | 'emerald' | 'amber' | 'purple' | 'slate'; children: React.ReactNode }) {
+  const colors: Record<string, string> = {
+    blue: 'bg-blue-500/15 hover:bg-blue-500/25 text-blue-300 border-blue-500/30',
+    emerald: 'bg-emerald-500/15 hover:bg-emerald-500/25 text-emerald-300 border-emerald-500/30',
+    amber: 'bg-amber-500/15 hover:bg-amber-500/25 text-amber-300 border-amber-500/30',
+    purple: 'bg-purple-500/15 hover:bg-purple-500/25 text-purple-300 border-purple-500/30',
+    slate: 'bg-white/5 hover:bg-white/10 text-slate-400 border-white/10',
+  }
+  return (
+    <a
+      href={href}
+      target="_blank"
+      rel="noreferrer"
+      className={`px-3 py-1.5 rounded-lg text-xs font-semibold border transition ${colors[color]}`}
+    >
+      {children}
+    </a>
   )
 }
