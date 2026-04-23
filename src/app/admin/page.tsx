@@ -613,9 +613,22 @@ function RequestCard({
         const otherCentres = ['BBDC', 'CDC', 'SSDC'].filter((c) => c !== centre).join(' or ') || 'other centres'
         const wa = (text: string) => `https://wa.me/65${wphone}?text=${encodeURIComponent(text)}`
 
+        const selectedInstructors = Array.from(selected)
+          .map((id) => instructors.find((i) => i.id === id))
+          .filter((i): i is NonNullable<typeof i> => !!i)
+
+        const formatPdiPhone = (p: string) => {
+          const d = String(p).replace(/\D/g, '')
+          return `+65 ${d.slice(0, 4)} ${d.slice(4)}`
+        }
+        const pdiBlocks = selectedInstructors
+          .map((i) => `Name - ${i.name}\nNo. - ${formatPdiPhone(i.phone)}`)
+          .join('\n\n')
+
         const templates = {
           followUp: `Hi ${firstName}, following up on if you'd like to proceed with us sending you the PDI's contact. Please do let us know, thanks!`,
           matchFound: `Hi ${firstName}, good news!\n\nWe found an available instructor for you at ${centre}. He is amongst the higher first time pass rate based on records and is taking students now. Please have a look at the screenshot below for proof of our conversation with the PDI.\n\nTo get his details to message him, please PayNow $19 to UEN: 202446262C. Name of recipient should automatically show Uniq Labs PTE LTD upon UEN entry.\n\nPlease let us know once paid, and upon confirmation we'll send you his details right away.\n\nCongrats, and all the best for your driving journey!`,
+          pdiDelivery: `Received payment! Here is the PDI info as shown below.\n\nPDI Info:\n\n${pdiBlocks}\n\nPlease do ask any questions you may have to the PDI from here on out and let your friends know about our service! All the best on your driving journey!`,
           round2Offer: `Hey ${firstName}, just an update. I checked with the top rated instructors at ${centre} for ${transmission} and they all seem to be fully booked at the moment.\n\nI do have a few more instructors at ${centre} that I can check with slightly lower pass rates, or I can check other centres like ${otherCentres} for you.\n\nPlease note that either option will cost $10. Let me know which you'd prefer or if you'd like to leave it for now, no worries either way!`,
           round2Paid: `Ok great, please PayNow $10 to UEN: 202446262C. Name of recipient should automatically show Uniq Labs PTE LTD upon UEN entry.\n\nPlease let us know once paid, and upon confirmation we'll start right away!`,
           noneFound: `Hey ${firstName}, unfortunately after checking all the manual/auto PDIs at ${centre}, none have slots right now. Wish we had better news. Holler if anything else comes up on your end.`,
@@ -627,10 +640,20 @@ function RequestCard({
             <div className="flex flex-wrap gap-1.5">
               <TplBtn href={wa(templates.followUp)} color="blue">Follow Up</TplBtn>
               <TplBtn href={wa(templates.matchFound)} color="emerald">Match Found + $19 PayNow</TplBtn>
+              {selectedInstructors.length > 0 && (
+                <TplBtn href={wa(templates.pdiDelivery)} color="emerald">
+                  Send PDI Info ({selectedInstructors.length}) ✅
+                </TplBtn>
+              )}
               <TplBtn href={wa(templates.round2Offer)} color="amber">Round 2 Offer ($10)</TplBtn>
               <TplBtn href={wa(templates.round2Paid)} color="purple">Round 2 PayNow $10</TplBtn>
               <TplBtn href={wa(templates.noneFound)} color="slate">No PDI Found, Close</TplBtn>
             </div>
+            {selectedInstructors.length === 0 && (
+              <div className="text-[11px] text-slate-600 mt-2 italic">
+                Tick the instructor(s) below to unlock the "Send PDI Info" template.
+              </div>
+            )}
           </div>
         )
       })()}
