@@ -526,6 +526,33 @@ function RequestCard({
     finally { setBusy(false) }
   }
 
+  async function closeNoMatch() {
+    const baseAmount = typeof request.amount_cents === 'number' ? request.amount_cents : parseInt(String(request.amount_cents), 10) || 0
+    const finalAmount = earnedCents ?? baseAmount
+    const ok = window.confirm(
+      `Close with no match?\n\n` +
+      `${request.learner_name} paid ${formatSGD(finalAmount)} but no PDI was found.\n\n` +
+      `This marks the request complete and keeps ${formatSGD(finalAmount)} as earned. No instructor is attached.`
+    )
+    if (!ok) return
+    setBusy(true)
+    try {
+      const res = await fetch('/api/admin/close-no-match', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${password}` },
+        body: JSON.stringify({
+          requestId: request.id,
+          ...(earnedCents !== null ? { amount_cents: earnedCents } : {}),
+        }),
+      })
+      const data = await res.json()
+      if (!res.ok) throw new Error(data.error || 'Failed')
+      toast.success(`Closed, ${formatSGD(finalAmount)} earned`)
+      onChange()
+    } catch (e) { toast.error(e instanceof Error ? e.message : 'Failed') }
+    finally { setBusy(false) }
+  }
+
   const phone = String(request.learner_phone)
 
   return (
@@ -861,6 +888,12 @@ function RequestCard({
               className="px-4 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white text-sm font-semibold transition disabled:opacity-40 disabled:cursor-not-allowed">
               {busy ? 'Working...' : `Deliver @ ${formatSGD(earnedCents ?? (typeof request.amount_cents === 'number' ? request.amount_cents : parseInt(String(request.amount_cents), 10) || 0))} (${selected.size})`}
             </button>
+            {earnedCents !== null && earnedCents > 0 && (
+              <button onClick={closeNoMatch} disabled={busy}
+                className="px-4 py-2.5 rounded-xl bg-amber-500/15 hover:bg-amber-500/25 border border-amber-500/30 text-amber-300 text-sm font-semibold transition disabled:opacity-40">
+                {busy ? 'Working...' : `Close, No PDI Found (keep ${formatSGD(earnedCents)})`}
+              </button>
+            )}
             <button onClick={() => setShowFail(!showFail)} disabled={busy}
               className="px-4 py-2.5 rounded-xl bg-white/5 border border-white/10 text-slate-400 hover:text-white text-sm font-medium transition">
               {request.status === 'submitted' ? 'Reject' : 'Void'}
