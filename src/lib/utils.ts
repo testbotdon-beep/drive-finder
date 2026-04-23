@@ -13,9 +13,14 @@ export function formatSGD(cents: number): string {
   }).format(cents / 100)
 }
 
-export function formatPhone(phone: string | number): string {
+export function toSGDigits(phone: string | number): string {
   const digits = String(phone).replace(/\D/g, '')
-  if (digits.length === 8) return `${digits.slice(0, 4)} ${digits.slice(4)}`
+  return digits.startsWith('65') && digits.length > 8 ? digits.slice(2) : digits
+}
+
+export function formatPhone(phone: string | number): string {
+  const local = toSGDigits(phone)
+  if (local.length === 8) return `${local.slice(0, 4)} ${local.slice(4)}`
   return String(phone)
 }
 

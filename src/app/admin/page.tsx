@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useCallback } from 'react'
 import { toast } from 'sonner'
-import { formatSGD, formatPhone, timeRemaining } from '@/lib/utils'
+import { formatSGD, formatPhone, timeRemaining, toSGDigits } from '@/lib/utils'
 
 type Instructor = {
   id: string
@@ -572,7 +572,7 @@ function RequestCard({
           </div>
           <div className="text-white font-semibold text-lg">{request.learner_name}</div>
           <div className="flex items-center gap-3 text-sm mt-1">
-            <a href={`https://wa.me/65${phone.replace(/\D/g, '')}?text=${encodeURIComponent(`Hi ${request.learner_name.split(' ')[0]}, thanks for using Drive Finder SG. We will be looking for a PDI willing to undertake new learners and will let you know if any are available within the next 7 days!`)}`} target="_blank" className="text-emerald-400 hover:text-emerald-300 transition">
+            <a href={`https://wa.me/65${toSGDigits(phone)}?text=${encodeURIComponent(`Hi ${request.learner_name.split(' ')[0]}, thanks for using Drive Finder SG. We will be looking for a PDI willing to undertake new learners and will let you know if any are available within the next 7 days!`)}`} target="_blank" className="text-emerald-400 hover:text-emerald-300 transition">
               {formatPhone(phone)}
             </a>
             <span className="text-slate-600">|</span>
@@ -609,7 +609,7 @@ function RequestCard({
         const firstName = (request.learner_name || '').split(' ')[0] || request.learner_name
         const centre = request.test_centre
         const transmission = String(request.transmission || '').toLowerCase()
-        const wphone = String(request.learner_phone).replace(/\D/g, '')
+        const wphone = toSGDigits(request.learner_phone)
         const otherCentres = ['BBDC', 'CDC', 'SSDC'].filter((c) => c !== centre).join(' or ') || 'other centres'
         const wa = (text: string) => `https://wa.me/65${wphone}?text=${encodeURIComponent(text)}`
 
