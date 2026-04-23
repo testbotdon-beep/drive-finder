@@ -87,6 +87,7 @@ function Dashboard({ password, onLogout }: { password: string; onLogout: () => v
   const [filter, setFilter] = useState<'active' | 'due' | 'completed' | 'all'>('active')
   const [centreFilter, setCentreFilter] = useState<string>('ALL')
   const [contactStatus, setContactStatus] = useState<Record<string, string>>({})
+  const [contactDates, setContactDates] = useState<Record<string, string>>({})
   const [metaMap, setMetaMap] = useState<Record<string, Record<string, string>>>({})
 
   const loadContactStatus = useCallback(async () => {
@@ -96,18 +97,42 @@ function Dashboard({ password, onLogout }: { password: string; onLogout: () => v
       })
       const data = await res.json()
       setContactStatus(data.statuses || {})
+      setContactDates(data.dates || {})
     } catch {}
   }, [password])
 
   async function updateContactStatus(instructorId: string, status: string) {
     const next = { ...contactStatus }
-    if (status === '') delete next[instructorId]; else next[instructorId] = status
+    const nextDates = { ...contactDates }
+    if (status === '') {
+      delete next[instructorId]
+      delete nextDates[instructorId]
+    } else {
+      next[instructorId] = status
+      nextDates[instructorId] = new Date().toISOString()
+    }
     setContactStatus(next)
+    setContactDates(nextDates)
     fetch('/api/admin/contact-status', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${password}` },
       body: JSON.stringify({ instructorId, status }),
     }).catch(() => {})
+  }
+
+  function needsRecheck(instructorId: string): boolean {
+    if (contactStatus[instructorId] !== 'yes') return false
+    const date = contactDates[instructorId]
+    if (!date) return true
+    const daysOld = (Date.now() - new Date(date).getTime()) / (1000 * 60 * 60 * 24)
+    return daysOld > 30
+  }
+
+  function daysSinceYes(instructorId: string): number | null {
+    if (contactStatus[instructorId] !== 'yes') return null
+    const date = contactDates[instructorId]
+    if (!date) return null
+    return Math.floor((Date.now() - new Date(date).getTime()) / (1000 * 60 * 60 * 24))
   }
 
   const load = useCallback(async () => {
@@ -187,13 +212,19 @@ function Dashboard({ password, onLogout }: { password: string; onLogout: () => v
 
       <div className="max-w-6xl mx-auto px-6 pt-6">
         {/* Stats */}
-        <div className="grid grid-cols-2 md:grid-cols-5 gap-3 mb-6">
+        <div className="grid grid-cols-2 md:grid-cols-6 gap-3 mb-6">
           <Stat label="NEW REQUESTS" value={String(submittedCount)} color="#3b82f6" />
           <Stat
             label="FOLLOW UP TODAY"
             value={String(dueCount)}
             color={dueCount > 0 ? '#ef4444' : '#64748b'}
             onClick={() => { setTab('requests'); setFilter('due') }}
+          />
+          <Stat
+            label="RECHECK PDIs"
+            value={String(instructors.filter((i) => needsRecheck(i.id)).length)}
+            color={instructors.some((i) => needsRecheck(i.id)) ? '#f97316' : '#64748b'}
+            onClick={() => { setTab('instructors') }}
           />
           <Stat label="ACTIVE" value={String(activeCount)} color="#f59e0b" />
           <Stat label="EARNED" value={formatSGD(totalEarned)} color="#10b981" />
@@ -261,11 +292,33 @@ function Dashboard({ password, onLogout }: { password: string; onLogout: () => v
                 <div></div>
               </div>
               {filteredInstructors
-                .sort((a, b) => b.pass_rate - a.pass_rate)
-                .map((i) => (
-                <div key={i.id} className="grid grid-cols-[1fr_80px_80px_70px_140px_50px] gap-2 px-5 py-3 items-center border-b border-white/5 last:border-0 hover:bg-white/[0.02] transition">
+                .sort((a, b) => {
+                  const aRecheck = needsRecheck(a.id) ? 1 : 0
+                  const bRecheck = needsRecheck(b.id) ? 1 : 0
+                  if (aRecheck !== bRecheck) return bRecheck - aRecheck
+                  return b.pass_rate - a.pass_rate
+                })
+                .map((i) => {
+                  const recheck = needsRecheck(i.id)
+                  const days = daysSinceYes(i.id)
+                  const recheckMsg = `Hi uncle, just following up, are you still taking new students for ${i.class_type === '3' ? 'manual' : 'auto'} lessons at ${i.test_centre}? No pressure, just keeping our list up to date, thanks!`
+                  const newMsg = `Hello! I have a student looking for ${i.class_type === '3' ? 'manual' : 'auto'} lessons at ${i.test_centre}. Are you taking students? Please do let me know, thanks!`
+                  return (
+                <div key={i.id} className={`grid grid-cols-[1fr_80px_80px_70px_140px_70px] gap-2 px-5 py-3 items-center border-b border-white/5 last:border-0 hover:bg-white/[0.02] transition ${recheck ? 'bg-orange-500/5' : ''}`}>
                   <div>
-                    <div className="text-white font-medium text-[15px]">{i.name}</div>
+                    <div className="flex items-center gap-2">
+                      <div className="text-white font-medium text-[15px]">{i.name}</div>
+                      {recheck && (
+                        <span className="text-[10px] font-bold px-1.5 py-0.5 rounded bg-orange-500/20 text-orange-300 border border-orange-500/30">
+                          RECHECK · {days}d old
+                        </span>
+                      )}
+                      {!recheck && days !== null && (
+                        <span className="text-[10px] font-semibold text-emerald-500/70">
+                          Yes · {days}d
+                        </span>
+                      )}
+                    </div>
                     <div className="text-slate-500 text-xs">{formatPhone(i.phone)}</div>
                   </div>
                   <div className="text-slate-400 text-sm">{i.test_centre}</div>
@@ -282,15 +335,16 @@ function Dashboard({ password, onLogout }: { password: string; onLogout: () => v
                   </div>
                   <div>
                     <a
-                      href={`https://wa.me/65${String(i.phone).replace(/\D/g, '')}?text=${encodeURIComponent(`Hello! I have a student looking for ${i.class_type === '3' ? 'manual' : 'auto'} lessons at ${i.test_centre}. Are you taking students? Please do let me know, thanks!`)}`}
+                      href={`https://wa.me/65${String(i.phone).replace(/\D/g, '')}?text=${encodeURIComponent(recheck ? recheckMsg : newMsg)}`}
                       target="_blank"
-                      className="text-xs text-emerald-400 hover:text-emerald-300 font-medium transition"
+                      className={`text-xs font-medium transition ${recheck ? 'text-orange-300 hover:text-orange-200' : 'text-emerald-400 hover:text-emerald-300'}`}
                     >
-                      WA
+                      {recheck ? 'Recheck WA' : 'WA'}
                     </a>
                   </div>
                 </div>
-              ))}
+                  )
+              })}
             </div>
             <p className="text-xs text-slate-600 mt-3 text-center">
               {filteredInstructors.length} instructors. Click WA to message with a pre-filled template.
