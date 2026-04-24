@@ -25,11 +25,15 @@ export default function TermsPage() {
 
           <Section title="3. Extended search">
             <p>If the initial 5 instructors are unavailable, we will inform you and offer an extended search for an
-            additional SGD $10 (the &ldquo;Extended Fee&rdquo;). The extended search covers either:</p>
+            additional SGD $10 (the &ldquo;Extended Search Fee&rdquo;). The extended search covers either:</p>
             <ul className="list-disc pl-6 mt-2 space-y-1">
               <li>Additional instructors at the same test centre (which may have lower pass rates); or</li>
               <li>Instructors at a different test centre of your choice.</li>
             </ul>
+            <p className="mt-3"><strong>Pricing:</strong> The $10 Extended Search Fee is charged upfront for the additional search
+            effort. If the extended search successfully finds you a verified, available instructor, the $19 Standard Fee
+            in Section 2 applies to unlock the matched contact details. If no match is found, only the $10 Extended
+            Search Fee is charged.</p>
             <p className="mt-3">The extended search is optional. You are under no obligation to proceed. If you choose
             not to, no further charges apply.</p>
           </Section>
