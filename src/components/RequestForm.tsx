@@ -159,7 +159,6 @@ export function RequestForm() {
             <a href="/terms" target="_blank" className="text-emerald-700 font-medium hover:underline">Terms of Service</a>
             {' '}and{' '}
             <a href="/privacy" target="_blank" className="text-emerald-700 font-medium hover:underline">Privacy Policy</a>.
-            I understand instructor availability is verified within 14 days of my match being delivered and can change without notice.
           </span>
         </label>
         <button
