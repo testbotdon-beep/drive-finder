@@ -12,7 +12,7 @@ export const metadata: Metadata = {
     template: '%s | Drive Finder SG',
   },
   description:
-    'Stop cold-calling 20 numbers. Tell us what you need and we will find you 2 to 3 vetted, high pass rate, available private driving instructors. $19 flat. No match, no charge.',
+    'Stop cold-calling 20 numbers. Tell us what you need and we will find you a vetted, high pass rate, available private driving instructor. $19 flat. No match, no charge.',
   applicationName: 'Drive Finder SG',
   keywords: [
     'private driving instructor Singapore',
@@ -79,7 +79,7 @@ const jsonLd = {
     '@type': 'Offer',
     price: '19',
     priceCurrency: 'SGD',
-    description: 'Match with 2 to 3 verified private driving instructors at your chosen test centre.',
+    description: 'Match with a verified private driving instructor at your chosen test centre.',
   },
 }
 

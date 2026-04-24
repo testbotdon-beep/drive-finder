@@ -123,7 +123,7 @@ function HowItWorks() {
           <StepCard
             n="03"
             title="You pay, we introduce"
-            desc="If we found you 2 to 3 good matches, we send you a $19 payment link. Once you pay, we send you their name, number, and pass rate so you can contact them directly."
+            desc="If we found you a good match, we send you a $19 payment link. Once you pay, we send you their name, number, and pass rate so you can contact them directly."
             accent="from-violet-500/10 to-violet-500/0"
           />
         </div>
@@ -271,15 +271,15 @@ function FAQSection() {
   const faqs = [
 {
       q: "When exactly do I pay?",
-      a: "You don't pay anything when you submit the form. We first check if we have instructors that match what you need. If we do, we send you a $19 payment link by email. If we can't find anyone, you never pay.",
+      a: "You don't pay anything when you submit the form. We first check if we have an instructor that matches what you need. If we do, we send you a $19 PayNow request via WhatsApp. If we can't find anyone, you never pay.",
     },
     {
-      q: "How do I receive my matches?",
-      a: "Once you pay the $19, we send you 2 to 3 instructor details (name, phone number, pass rate) so you can contact them directly.",
+      q: "How do I receive my match?",
+      a: "Once you pay the $19, we send you the matched instructor's details (name, phone number, pass rate) so you can contact them directly.",
     },
     {
-      q: "What if I don't like the matches?",
-      a: "The $19 covers the research and matching. If you genuinely feel we sent bad matches, reach out within a week and we'll review individually. We want five star reviews more than $19.",
+      q: "What if I don't like the match?",
+      a: "The $19 covers the research and matching. If you genuinely feel we sent a bad match, reach out within a week and we'll review individually. We want five star reviews more than $19.",
     },
     {
       q: 'Which driving centres do you cover?',
@@ -372,6 +372,7 @@ function Footer() {
               <div className="space-y-2 text-slate-500">
                 <Link href="/terms" className="block hover:text-slate-900 transition-colors">Terms of Service</Link>
                 <Link href="/privacy" className="block hover:text-slate-900 transition-colors">Privacy Policy</Link>
+                <Link href="/contact" className="block hover:text-slate-900 transition-colors">Contact</Link>
 {/* no refund policy link */}
               </div>
             </div>

@@ -50,7 +50,7 @@ export async function POST(req: NextRequest) {
             product_data: {
               name: 'Driving Instructor Match',
               description:
-                'We have confirmed 2 to 3 available, high pass rate instructors matching your criteria. Pay $19 and we will send you their details with a warm intro.',
+                'We have confirmed an available, high pass rate instructor matching your criteria. Pay $19 and we will send you the details with a warm intro.',
             },
           },
           quantity: 1,

@@ -8,7 +8,7 @@ const slides = [
   { big: 'School waitlist?', sub: '6 months. If you are lucky.', tag: '03' },
   { big: 'Then a friend sent me this:', sub: '', tag: '04' },
   { big: 'drivefindersg.uqlabs.co', sub: '', tag: '05', accent: true },
-  { big: 'Tell them your test centre.', sub: 'They find you 2 to 3 available PDIs.', tag: '06' },
+  { big: 'Tell them your test centre.', sub: 'They find you an available PDI.', tag: '06' },
   { big: '$19.', sub: 'No match, no charge.', tag: '07' },
   { big: 'Back to learning 🎉', sub: 'drivefindersg.uqlabs.co', tag: '08', accent: true },
 ]

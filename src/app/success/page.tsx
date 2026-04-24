@@ -55,7 +55,7 @@ function SuccessContent() {
               </p>
               <InfoRow
                 title="What happens next"
-                desc="We'll send you 2 to 3 verified instructor details (name, number, pass rate) so you can contact them directly."
+                desc="We'll send you the verified instructor's details (name, number, pass rate) so you can contact them directly."
               />
             </>
           ) : (

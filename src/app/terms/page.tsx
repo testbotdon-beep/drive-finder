@@ -17,9 +17,9 @@ export default function TermsPage() {
 
           <Section title="2. What we deliver">
             <p>For the initial fee of SGD $19 (the &ldquo;Standard Fee&rdquo;), we will contact up to 5 top rated private
-            driving instructors at your chosen test centre and endeavour to match you with 2 to 3 verified, available
-            instructors within 7 days of your request.</p>
-            <p className="mt-3">&ldquo;Delivery&rdquo; means we send you at least 2 instructor contact details (name and
+            driving instructors at your chosen test centre and endeavour to match you with a verified, available
+            instructor within 7 days of your request.</p>
+            <p className="mt-3">&ldquo;Delivery&rdquo; means we send you at least one instructor's contact details (name and
             phone number) via WhatsApp, with confirmation that we have personally verified their availability.</p>
           </Section>
 
@@ -40,22 +40,22 @@ export default function TermsPage() {
 
           <Section title="4. How payment works">
             <p>Payment is collected via PayNow or card payment (Stripe), at our discretion. You are only asked to pay
-            after we have confirmed available instructor matches for you. No payment is taken at the time of
+            after we have confirmed an available instructor match for you. No payment is taken at the time of
             submitting your request.</p>
-            <p className="mt-3">If we are unable to find any matches within 7 days, you will not be charged.</p>
+            <p className="mt-3">If we are unable to find a match within 7 days, you will not be charged.</p>
           </Section>
 
           <Section title="5. Non-refundable once delivered">
-            Once we have delivered matches per Section 2, the Fee is considered earned and is <strong>non-refundable</strong>.
+            Once we have delivered the match per Section 2, the Fee is considered earned and is <strong>non-refundable</strong>.
             This includes cases where:
             <ul className="list-disc pl-6 mt-2 space-y-1">
               <li>You change your mind or decide not to proceed with lessons;</li>
-              <li>You are unable to reach an instructor after we provide their contact details;</li>
-              <li>An instructor becomes unavailable after we verify them;</li>
+              <li>You are unable to reach the instructor after we provide their contact details;</li>
+              <li>The instructor becomes unavailable after we verify them;</li>
               <li>You do not pass your driving test.</li>
             </ul>
-            If you believe we have materially failed to deliver as promised, please contact us at the contact form on our website within
-            7 days of receiving your matches and we will review your case individually.
+            If you believe we have materially failed to deliver as promised, please contact us via the <a className="text-emerald-600 hover:underline" href="/contact">contact form</a> within
+            7 days of receiving your match and we will review your case individually.
           </Section>
 
           <Section title="6. No guarantee of lesson outcomes">
@@ -87,7 +87,7 @@ export default function TermsPage() {
           </Section>
 
           <Section title="11. Contact">
-            Questions? Reach out via the contact form on our website.
+            Questions? Reach out via the <a className="text-emerald-600 hover:underline" href="/contact">contact form</a>.
           </Section>
         </div>
       </div>
