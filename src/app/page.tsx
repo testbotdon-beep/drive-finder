@@ -89,7 +89,7 @@ function DataBadge() {
         </div>
         <div className="flex items-center gap-2">
           <span className="h-1.5 w-1.5 rounded-full bg-emerald-500" />
-          <span>100+ verified instructors, updated weekly</span>
+          <span>100+ verified instructors</span>
         </div>
       </div>
     </section>
