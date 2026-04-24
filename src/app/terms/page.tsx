@@ -21,6 +21,9 @@ export default function TermsPage() {
             instructors within 7 days of your request.</p>
             <p className="mt-3">&ldquo;Delivery&rdquo; means we send you at least 2 instructor contact details (name and
             phone number) via WhatsApp, with confirmation that we have personally verified their availability.</p>
+            <p className="mt-3"><strong>Verification window:</strong> Instructor availability is verified within 14 days of your match being delivered.
+            Instructors are independent individuals and their availability can change without notice after we verify them.
+            By submitting a request you acknowledge that a verified availability does not constitute a guarantee of future availability.</p>
           </Section>
 
           <Section title="3. Extended search">

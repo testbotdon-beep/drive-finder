@@ -125,7 +125,7 @@ function Dashboard({ password, onLogout }: { password: string; onLogout: () => v
     const date = contactDates[instructorId]
     if (!date) return true
     const daysOld = (Date.now() - new Date(date).getTime()) / (1000 * 60 * 60 * 24)
-    return daysOld > 30
+    return daysOld > 14
   }
 
   function daysSinceYes(instructorId: string): number | null {

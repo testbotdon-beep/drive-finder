@@ -26,6 +26,7 @@ const INITIAL: FormState = {
 export function RequestForm() {
   const [form, setForm] = useState<FormState>(INITIAL)
   const [loading, setLoading] = useState(false)
+  const [agreed, setAgreed] = useState(false)
 
   function update<K extends keyof FormState>(key: K, value: FormState[K]) {
     setForm((f) => ({ ...f, [key]: value }))
@@ -34,6 +35,10 @@ export function RequestForm() {
   async function onSubmit(e: React.FormEvent) {
     e.preventDefault()
     if (loading) return
+    if (!agreed) {
+      toast.error('Please agree to the Terms of Service and Privacy Policy first.')
+      return
+    }
     setLoading(true)
     try {
       const res = await fetch('/api/request', {
@@ -142,10 +147,25 @@ export function RequestForm() {
       </div>
 
       <div className="bg-slate-50/80 border-t border-slate-100 px-6 md:px-8 py-5 space-y-4">
+        <label className="flex items-start gap-2.5 text-[13px] text-slate-600 cursor-pointer select-none">
+          <input
+            type="checkbox"
+            checked={agreed}
+            onChange={(e) => setAgreed(e.target.checked)}
+            className="mt-0.5 h-4 w-4 shrink-0 accent-emerald-600"
+          />
+          <span>
+            I agree to the{' '}
+            <a href="/terms" target="_blank" className="text-emerald-700 font-medium hover:underline">Terms of Service</a>
+            {' '}and{' '}
+            <a href="/privacy" target="_blank" className="text-emerald-700 font-medium hover:underline">Privacy Policy</a>.
+            I understand instructor availability is verified within 14 days of my match being delivered and can change without notice.
+          </span>
+        </label>
         <button
           type="submit"
-          disabled={loading}
-          className="btn-primary btn-cta w-full"
+          disabled={loading || !agreed}
+          className="btn-primary btn-cta w-full disabled:opacity-50 disabled:cursor-not-allowed"
         >
           {loading ? (
             <span className="flex items-center gap-2">
