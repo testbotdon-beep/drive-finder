@@ -55,7 +55,7 @@ export default function PrivacyPage() {
 
           <Section title="7. Your rights">
             Under the PDPA you have the right to access, correct, or request deletion of your personal data. To exercise
-            these rights, reach out via the <a className="text-emerald-600 hover:underline" href="/contact">contact form</a>.
+            these rights, reach out on the WhatsApp thread we used to coordinate your request.
             We will respond within 30 days.
           </Section>
 
@@ -70,7 +70,7 @@ export default function PrivacyPage() {
           </Section>
 
           <Section title="10. Contact">
-            Questions about privacy? Reach out via the <a className="text-emerald-600 hover:underline" href="/contact">contact form</a>.
+            Questions about privacy? Reach out on the WhatsApp thread we used to coordinate your request.
           </Section>
         </div>
       </div>

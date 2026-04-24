@@ -372,7 +372,6 @@ function Footer() {
               <div className="space-y-2 text-slate-500">
                 <Link href="/terms" className="block hover:text-slate-900 transition-colors">Terms of Service</Link>
                 <Link href="/privacy" className="block hover:text-slate-900 transition-colors">Privacy Policy</Link>
-                <Link href="/contact" className="block hover:text-slate-900 transition-colors">Contact</Link>
 {/* no refund policy link */}
               </div>
             </div>

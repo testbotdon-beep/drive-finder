@@ -54,7 +54,7 @@ export default function TermsPage() {
               <li>The instructor becomes unavailable after we verify them;</li>
               <li>You do not pass your driving test.</li>
             </ul>
-            If you believe we have materially failed to deliver as promised, please contact us via the <a className="text-emerald-600 hover:underline" href="/contact">contact form</a> within
+            If you believe we have materially failed to deliver as promised, please contact us on the WhatsApp thread we used to coordinate your request within
             7 days of receiving your match and we will review your case individually.
           </Section>
 
@@ -87,7 +87,7 @@ export default function TermsPage() {
           </Section>
 
           <Section title="11. Contact">
-            Questions? Reach out via the <a className="text-emerald-600 hover:underline" href="/contact">contact form</a>.
+            Questions? Reach out on the WhatsApp thread we used to coordinate your request.
           </Section>
         </div>
       </div>
