@@ -2,6 +2,7 @@ import type { Metadata } from 'next'
 import './globals.css'
 import { Toaster } from 'sonner'
 import { Analytics } from '@vercel/analytics/next'
+import { UniqHeader } from '@/components/uniq-header'
 
 const SITE_URL = 'https://drivefindersg.uqlabs.co'
 
@@ -95,6 +96,7 @@ export default function RootLayout({
         />
       </head>
       <body className="antialiased">
+        <UniqHeader active="drivefinder" />
         {children}
         <Analytics />
         <Toaster position="top-center" richColors />

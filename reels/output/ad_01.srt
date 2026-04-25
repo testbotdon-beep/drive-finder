@@ -1,0 +1,19 @@
+1
+00:00:00,000 --> 00:00:02,799
+Need to find a private
+driving instructor?
+
+2
+00:00:02,799 --> 00:00:05,200
+We check which ones are
+actually taking students
+
+3
+00:00:05,200 --> 00:00:07,500
+Free to submit
+Only pay if matched
+
+4
+00:00:07,500 --> 00:00:10,000
+drivefindersg.uqlabs.co
+
