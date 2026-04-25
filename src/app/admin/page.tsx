@@ -327,14 +327,14 @@ function Dashboard({ password, onLogout }: { password: string; onLogout: () => v
                   <div>
                     <div className="flex items-center gap-2 flex-wrap">
                       <div className="text-white font-medium text-[15px]">{i.name}</div>
-                      {recheck && (
-                        <span className="text-[10px] font-bold px-1.5 py-0.5 rounded bg-orange-500/20 text-orange-300 border border-orange-500/30">
-                          RECHECK · {days}d old
-                        </span>
-                      )}
-                      {!recheck && days !== null && (
+                      {days !== null && (
                         <span className="text-[10px] font-semibold text-emerald-500/70">
                           Yes · {days}d
+                        </span>
+                      )}
+                      {recheck && (
+                        <span className="text-[10px] font-bold px-1.5 py-0.5 rounded bg-orange-500/20 text-orange-300 border border-orange-500/30">
+                          RECHECK
                         </span>
                       )}
                       {contactStatus[i.id] === 'yes' && (
