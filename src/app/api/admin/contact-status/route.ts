@@ -38,10 +38,12 @@ export async function POST(req: NextRequest) {
       redis.hdel(DATE_KEY, body.instructorId),
     ])
   } else {
-    const now = new Date().toISOString()
+    const date = typeof body.updated_at === 'string' && /^\d{4}-\d{2}-\d{2}T/.test(body.updated_at)
+      ? body.updated_at
+      : new Date().toISOString()
     await Promise.all([
       redis.hset(KEY, { [body.instructorId]: body.status }),
-      redis.hset(DATE_KEY, { [body.instructorId]: now }),
+      redis.hset(DATE_KEY, { [body.instructorId]: date }),
     ])
   }
   return NextResponse.json({ ok: true })

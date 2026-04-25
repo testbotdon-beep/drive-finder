@@ -120,6 +120,25 @@ function Dashboard({ password, onLogout }: { password: string; onLogout: () => v
     }).catch(() => {})
   }
 
+  async function backdateContact(instructorId: string) {
+    const current = contactDates[instructorId]
+    const defaultDate = current ? current.slice(0, 10) : new Date().toISOString().slice(0, 10)
+    const input = window.prompt(
+      `Backdate last contact for this instructor.\nFormat YYYY-MM-DD (e.g. 2026-04-17).`,
+      defaultDate
+    )
+    if (!input) return
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(input)) { alert('Invalid format. Use YYYY-MM-DD.'); return }
+    const iso = new Date(input + 'T12:00:00.000Z').toISOString()
+    if (!Number.isFinite(new Date(iso).getTime())) { alert('Invalid date.'); return }
+    setContactDates({ ...contactDates, [instructorId]: iso })
+    fetch('/api/admin/contact-status', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${password}` },
+      body: JSON.stringify({ instructorId, status: contactStatus[instructorId] || 'yes', updated_at: iso }),
+    }).catch(() => {})
+  }
+
   function needsRecheck(instructorId: string): boolean {
     if (contactStatus[instructorId] !== 'yes') return false
     const date = contactDates[instructorId]
@@ -306,7 +325,7 @@ function Dashboard({ password, onLogout }: { password: string; onLogout: () => v
                   return (
                 <div key={i.id} className={`grid grid-cols-[1fr_80px_80px_70px_140px_70px] gap-2 px-5 py-3 items-center border-b border-white/5 last:border-0 hover:bg-white/[0.02] transition ${recheck ? 'bg-orange-500/5' : ''}`}>
                   <div>
-                    <div className="flex items-center gap-2">
+                    <div className="flex items-center gap-2 flex-wrap">
                       <div className="text-white font-medium text-[15px]">{i.name}</div>
                       {recheck && (
                         <span className="text-[10px] font-bold px-1.5 py-0.5 rounded bg-orange-500/20 text-orange-300 border border-orange-500/30">
@@ -317,6 +336,14 @@ function Dashboard({ password, onLogout }: { password: string; onLogout: () => v
                         <span className="text-[10px] font-semibold text-emerald-500/70">
                           Yes · {days}d
                         </span>
+                      )}
+                      {contactStatus[i.id] === 'yes' && (
+                        <button
+                          onClick={() => backdateContact(i.id)}
+                          className="text-[10px] font-medium text-slate-500 hover:text-emerald-400 underline-offset-2 hover:underline transition"
+                        >
+                          backdate
+                        </button>
                       )}
                     </div>
                     <div className="text-slate-500 text-xs">{formatPhone(i.phone)}</div>
