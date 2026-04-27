@@ -4,6 +4,8 @@ import { randomUUID } from 'crypto'
 import { createRequest, type MatchRequest } from '@/lib/db'
 // Emails removed. Don sends payment links manually via WhatsApp.
 
+const REFERRAL_SOURCES = ['TikTok', 'Lemon8', 'Reddit', 'Facebook', 'Carousell', 'Google', 'Friend', 'Other'] as const
+
 const Schema = z.object({
   test_centre: z.enum(['BBDC', 'CDC', 'SSDC', 'ANY']),
   transmission: z.enum(['auto', 'manual']),
@@ -12,6 +14,7 @@ const Schema = z.object({
   learner_phone: z.string().min(6).max(24),
   learner_email: z.string().email().max(200),
   notes: z.string().max(500).optional().default(''),
+  referral_source: z.enum(REFERRAL_SOURCES),
 })
 
 export async function POST(req: NextRequest) {
@@ -45,6 +48,7 @@ export async function POST(req: NextRequest) {
     learner_phone: data.learner_phone,
     learner_email: data.learner_email,
     notes: data.notes || null,
+    referral_source: data.referral_source || null,
     status: 'submitted',
     stripe_payment_intent_id: null,
     amount_cents: priceCents,

@@ -68,6 +68,7 @@ export interface MatchRequest {
   learner_phone: string
   learner_email: string
   notes: string | null
+  referral_source: string | null
   status: RequestStatus
   stripe_payment_intent_id: string | null
   amount_cents: number

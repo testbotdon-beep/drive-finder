@@ -25,6 +25,7 @@ type Request = {
   learner_name: string
   learner_phone: string | number
   learner_email: string
+  referral_source: string | null
   notes: string | null
   status: string
   stripe_payment_intent_id: string | null
@@ -249,6 +250,34 @@ function Dashboard({ password, onLogout }: { password: string; onLogout: () => v
           <Stat label="EARNED" value={formatSGD(totalEarned)} color="#10b981" />
           <Stat label="TOTAL" value={String(requests.length)} color="#8b5cf6" />
         </div>
+
+        {/* Source breakdown */}
+        {(() => {
+          const startOfMonth = new Date()
+          startOfMonth.setDate(1)
+          startOfMonth.setHours(0, 0, 0, 0)
+          const monthRequests = requests.filter((r) => new Date(r.created_at).getTime() >= startOfMonth.getTime())
+          const sourceCounts: Record<string, number> = {}
+          for (const r of monthRequests) {
+            const src = r.referral_source || 'Unknown'
+            sourceCounts[src] = (sourceCounts[src] || 0) + 1
+          }
+          const sorted = Object.entries(sourceCounts).sort((a, b) => b[1] - a[1])
+          if (sorted.length === 0) return null
+          return (
+            <div className="bg-[#111d32] border border-white/5 rounded-xl p-4 mb-6">
+              <div className="text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-3">Sources this month ({monthRequests.length} requests)</div>
+              <div className="flex flex-wrap gap-2">
+                {sorted.map(([src, n]) => (
+                  <span key={src} className="px-2.5 py-1 rounded-lg bg-white/5 border border-white/5 text-[12px]">
+                    <span className="text-white font-medium">{src}</span>
+                    <span className="text-slate-500 ml-1.5">{n}</span>
+                  </span>
+                ))}
+              </div>
+            </div>
+          )
+        })()}
 
         {/* Tabs */}
         <div className="flex items-center gap-1 mb-6 bg-[#111d32] rounded-xl p-1 w-fit">
@@ -661,6 +690,11 @@ function RequestCard({
               {request.learner_email}
             </a>
           </div>
+          {request.referral_source && (
+            <div className="text-[11px] text-slate-500 mt-1">
+              Heard from <span className="text-slate-300 font-medium">{request.referral_source}</span>
+            </div>
+          )}
         </div>
         <div className="text-right text-xs space-y-1">
           <div className="text-slate-600">

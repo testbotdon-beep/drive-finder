@@ -11,6 +11,7 @@ type FormState = {
   learner_phone: string
   learner_email: string
   notes: string
+  referral_source: string
 }
 
 const INITIAL: FormState = {
@@ -21,7 +22,19 @@ const INITIAL: FormState = {
   learner_phone: '',
   learner_email: '',
   notes: '',
+  referral_source: '',
 }
+
+const REFERRAL_OPTIONS = [
+  'TikTok',
+  'Lemon8',
+  'Reddit',
+  'Facebook',
+  'Carousell',
+  'Google',
+  'Friend',
+  'Other',
+]
 
 export function RequestForm() {
   const [form, setForm] = useState<FormState>(INITIAL)
@@ -131,6 +144,20 @@ export function RequestForm() {
             value={form.learner_email}
             onChange={(e) => update('learner_email', e.target.value)}
           />
+        </Field>
+
+        <Field label="How did you hear about us?" required>
+          <select
+            required
+            className="input-field"
+            value={form.referral_source}
+            onChange={(e) => update('referral_source', e.target.value)}
+          >
+            <option value="" disabled>Select one</option>
+            {REFERRAL_OPTIONS.map((opt) => (
+              <option key={opt} value={opt}>{opt}</option>
+            ))}
+          </select>
         </Field>
 
         <Field label="Anything else? (optional)">
