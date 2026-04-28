@@ -89,18 +89,34 @@ function Dashboard({ password, onLogout }: { password: string; onLogout: () => v
   const [centreFilter, setCentreFilter] = useState<string>('ALL')
   const [contactStatus, setContactStatus] = useState<Record<string, string>>({})
   const [contactDates, setContactDates] = useState<Record<string, string>>({})
+  const [instructorNotes, setInstructorNotes] = useState<Record<string, string>>({})
   const [metaMap, setMetaMap] = useState<Record<string, Record<string, string>>>({})
 
   const loadContactStatus = useCallback(async () => {
     try {
-      const res = await fetch('/api/admin/contact-status', {
-        headers: { Authorization: `Bearer ${password}` },
-      })
-      const data = await res.json()
-      setContactStatus(data.statuses || {})
-      setContactDates(data.dates || {})
+      const [statusRes, notesRes] = await Promise.all([
+        fetch('/api/admin/contact-status', { headers: { Authorization: `Bearer ${password}` } }),
+        fetch('/api/admin/instructor-notes', { headers: { Authorization: `Bearer ${password}` } }),
+      ])
+      const statusData = await statusRes.json()
+      const notesData = await notesRes.json()
+      setContactStatus(statusData.statuses || {})
+      setContactDates(statusData.dates || {})
+      setInstructorNotes(notesData.notes || {})
     } catch {}
   }, [password])
+
+  async function updateInstructorNote(instructorId: string, note: string) {
+    const next = { ...instructorNotes }
+    if (note.trim() === '') delete next[instructorId]
+    else next[instructorId] = note
+    setInstructorNotes(next)
+    fetch('/api/admin/instructor-notes', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${password}` },
+      body: JSON.stringify({ instructorId, note }),
+    }).catch(() => {})
+  }
 
   async function updateContactStatus(instructorId: string, status: string) {
     const next = { ...contactStatus }
@@ -312,7 +328,7 @@ function Dashboard({ password, onLogout }: { password: string; onLogout: () => v
             ) : (
               <div className="space-y-4">
                 {filtered.map((r) => (
-                  <RequestCard key={r.id} request={r} instructors={instructors} password={password} onChange={load} contactStatus={contactStatus} onContactUpdate={updateContactStatus} />
+                  <RequestCard key={r.id} request={r} instructors={instructors} password={password} onChange={load} contactStatus={contactStatus} onContactUpdate={updateContactStatus} instructorNotes={instructorNotes} />
                 ))}
               </div>
             )}
@@ -376,6 +392,11 @@ function Dashboard({ password, onLogout }: { password: string; onLogout: () => v
                       )}
                     </div>
                     <div className="text-slate-500 text-xs">{formatPhone(i.phone)}</div>
+                    <InstructorNoteInput
+                      instructorId={i.id}
+                      value={instructorNotes[i.id] || ''}
+                      onSave={(v) => updateInstructorNote(i.id, v)}
+                    />
                   </div>
                   <div className="text-slate-400 text-sm">{i.test_centre}</div>
                   <div className="text-slate-400 text-sm">{i.class_type} ({i.transmission})</div>
@@ -460,9 +481,9 @@ function Empty({ text }: { text: string }) {
 }
 
 function RequestCard({
-  request, instructors, password, onChange, contactStatus, onContactUpdate,
+  request, instructors, password, onChange, contactStatus, onContactUpdate, instructorNotes,
 }: {
-  request: Request; instructors: Instructor[]; password: string; onChange: () => void; contactStatus: Record<string, string>; onContactUpdate: (id: string, status: string) => void
+  request: Request; instructors: Instructor[]; password: string; onChange: () => void; contactStatus: Record<string, string>; onContactUpdate: (id: string, status: string) => void; instructorNotes: Record<string, string>
 }) {
   const [selected, setSelected] = useState<Set<string>>(new Set())
   const [notes, setNotes] = useState('')
@@ -992,6 +1013,11 @@ function RequestCard({
                     <div className="flex-1 min-w-0">
                       <div className="text-white font-medium text-[15px]">{i.name}</div>
                       <div className="text-xs text-slate-500">{i.test_centre} / Class {i.class_type} / ${i.hourly_rate}/hr</div>
+                      {instructorNotes[i.id] && (
+                        <div className="mt-1 text-[11px] text-amber-300 bg-amber-500/10 border border-amber-500/20 rounded px-2 py-1 inline-block">
+                          📝 {instructorNotes[i.id]}
+                        </div>
+                      )}
                     </div>
                     <span className={`text-sm font-bold ${i.pass_rate >= 0.5 ? 'text-emerald-400' : i.pass_rate >= 0.3 ? 'text-amber-400' : 'text-red-400'}`}>
                       {Math.round(i.pass_rate * 100)}%
@@ -1085,6 +1111,22 @@ function RequestCard({
         <div className="mt-3 text-xs text-slate-600 italic">{request.admin_notes}</div>
       )}
     </div>
+  )
+}
+
+function InstructorNoteInput({ instructorId, value, onSave }: { instructorId: string; value: string; onSave: (v: string) => void }) {
+  const [draft, setDraft] = useState(value)
+  useEffect(() => { setDraft(value) }, [value, instructorId])
+  return (
+    <input
+      type="text"
+      placeholder="+ note (e.g. mandarin only, june start, manual experience...)"
+      value={draft}
+      onChange={(e) => setDraft(e.target.value)}
+      onBlur={() => { if (draft !== value) onSave(draft) }}
+      onKeyDown={(e) => { if (e.key === 'Enter') (e.target as HTMLInputElement).blur() }}
+      className={`mt-1 w-full text-[11px] px-2 py-1 rounded bg-transparent border border-white/5 hover:border-white/15 focus:border-amber-500/50 outline-none text-slate-300 placeholder-slate-700 transition ${value ? 'bg-amber-500/5 border-amber-500/20' : ''}`}
+    />
   )
 }
 
