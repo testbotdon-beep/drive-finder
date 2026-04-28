@@ -545,7 +545,12 @@ function RequestCard({
     if (request.test_centre !== 'ANY' && i.test_centre !== request.test_centre) return false
     if (String(i.class_type) !== String(request.class_type)) return false
     return true
-  }).sort((a, b) => b.pass_rate - a.pass_rate)
+  }).sort((a, b) => {
+    const aYes = contactStatus[a.id] === 'yes' ? 1 : 0
+    const bYes = contactStatus[b.id] === 'yes' ? 1 : 0
+    if (aYes !== bYes) return bYes - aYes
+    return b.pass_rate - a.pass_rate
+  })
 
   const statusStyles: Record<string, string> = {
     submitted: 'bg-blue-500/20 text-blue-400 border-blue-500/30',
