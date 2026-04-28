@@ -799,53 +799,6 @@ function RequestCard({
         )
       })()}
 
-      {/* Round & Stage Tracker */}
-      {(['submitted', 'confirmed', 'pending'].includes(request.status)) && metaLoaded && (
-        <div className="flex items-center gap-3 mb-4 flex-wrap">
-          <div className="flex items-center gap-1">
-            <button
-              onClick={() => saveMeta({ round: 1 })}
-              className={`px-2.5 py-1 rounded-lg text-xs font-bold transition ${round === 1 ? 'bg-blue-500/30 text-blue-400 border border-blue-500/40' : 'bg-white/5 text-slate-600 border border-white/5'}`}
-            >
-              Round 1
-            </button>
-            <button
-              onClick={() => saveMeta({ round: 2 })}
-              className={`px-2.5 py-1 rounded-lg text-xs font-bold transition ${round === 2 ? 'bg-amber-500/30 text-amber-400 border border-amber-500/40' : 'bg-white/5 text-slate-600 border border-white/5'}`}
-            >
-              Round 2
-            </button>
-          </div>
-          <select
-            value={stage}
-            onChange={(e) => saveMeta({ stage: e.target.value })}
-            className="bg-[#0a1628] border border-white/10 rounded-lg text-xs text-slate-400 px-2 py-1 outline-none"
-          >
-            <option value="">Stage...</option>
-            <option value="contacting">Contacting PDIs</option>
-            <option value="waiting">Waiting for PDI reply</option>
-            <option value="found">Match found</option>
-            <option value="no-match">No match, offering round 2</option>
-            <option value="awaiting-payment">Awaiting payment</option>
-            <option value="paid">Paid</option>
-          </select>
-          {stage && (
-            <span className={`text-[11px] font-semibold px-2 py-0.5 rounded-md ${
-              stage === 'found' || stage === 'paid' ? 'bg-emerald-500/20 text-emerald-400' :
-              stage === 'no-match' ? 'bg-red-500/20 text-red-400' :
-              stage === 'awaiting-payment' ? 'bg-purple-500/20 text-purple-400' :
-              'bg-amber-500/20 text-amber-400'
-            }`}>
-              {stage === 'contacting' ? 'Contacting PDIs' :
-               stage === 'waiting' ? 'Waiting for reply' :
-               stage === 'found' ? 'Match found' :
-               stage === 'no-match' ? 'No match' :
-               stage === 'awaiting-payment' ? 'Awaiting payment' :
-               stage === 'paid' ? 'Paid' : stage}
-            </span>
-          )}
-        </div>
-      )}
 
       {/* Follow-up scheduler */}
       {(['submitted', 'confirmed', 'pending'].includes(request.status)) && metaLoaded && (
