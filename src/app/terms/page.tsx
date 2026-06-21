@@ -16,42 +16,49 @@ export default function TermsPage() {
           </Section>
 
           <Section title="2. What we deliver">
-            <p>For the initial fee of SGD $19 (the &ldquo;Standard Fee&rdquo;), we will contact up to 5 top rated private
-            driving instructors at your chosen test centre and endeavour to match you with a verified, available
-            instructor within 7 days of your request.</p>
-            <p className="mt-3">&ldquo;Delivery&rdquo; means we send you at least one instructor's contact details (name and
-            phone number) via WhatsApp, with confirmation that we have personally verified their availability.</p>
+            <p>Submitting a request is free. We contact private driving instructors at your chosen test centre and ask you to
+            pay the SGD $19 fee (the &ldquo;Standard Fee&rdquo;) for the details of an instructor that responds.</p>
+            <p className="mt-3">&ldquo;Delivery&rdquo; means we send you that instructor's contact details (name and phone
+            number) via WhatsApp. The Standard Fee pays for this introduction, not for lessons or any outcome.</p>
           </Section>
 
-          <Section title="3. Extended search">
-            <p>If the initial 5 instructors are unavailable, we will inform you and offer an extended search for an
-            additional SGD $10 (the &ldquo;Extended Search Fee&rdquo;). The extended search covers either:</p>
+          <Section title="3. Watch list">
+            <p>If the initial search does not produce a responding instructor, we may offer to add you to our 30-day
+            watch list (the &ldquo;Watch List&rdquo;) for a one-off fee of SGD $9 (the &ldquo;Watch List Fee&rdquo;).</p>
+            <p className="mt-3">During the 30-day watch period, we will keep an eye out for instructor availability and
+            re-check with instructors at our own discretion. If a slot opens up within the 30-day window, we will send you
+            the matched instructor's contact details. <strong>No additional charges apply once the Watch List Fee has been paid</strong>
+            &mdash; the $9 covers both the watch period and the contact reveal if a match is found.</p>
+            <p className="mt-3">The Watch List Fee is <strong>non-refundable in all cases</strong>. The $9 covers the time
+            spent watching for availability on your behalf, regardless of outcome. This includes:</p>
             <ul className="list-disc pl-6 mt-2 space-y-1">
-              <li>Additional instructors at the same test centre (which may have lower pass rates); or</li>
-              <li>Instructors at a different test centre of your choice.</li>
+              <li>No match is found within the 30-day window;</li>
+              <li>You change your mind or decide not to proceed at any point during the watch period;</li>
+              <li>A match is provided but you choose not to contact them;</li>
+              <li>You do not like the matched instructor;</li>
+              <li>The matched instructor becomes unresponsive or unavailable after we provide their contact details;</li>
+              <li>You decide to go through a driving school instead;</li>
+              <li>You do not pass your driving test.</li>
             </ul>
-            <p className="mt-3"><strong>Pricing:</strong> The $10 Extended Search Fee is charged upfront for the additional search
-            effort. If the extended search successfully finds you a verified, available instructor, the $19 Standard Fee
-            in Section 2 applies to unlock the matched contact details. If no match is found, only the $10 Extended
-            Search Fee is charged.</p>
-            <p className="mt-3">The extended search is optional. You are under no obligation to proceed. If you choose
-            not to, no further charges apply.</p>
+            <p className="mt-3">We will let you know when the watch period ends.</p>
+            <p className="mt-3">The Watch List is optional. You are under no obligation to join. If you choose not to,
+            no further charges apply.</p>
           </Section>
 
           <Section title="4. How payment works">
             <p>Payment is collected via PayNow or card payment (Stripe), at our discretion. You are only asked to pay
-            after we have confirmed an available instructor match for you. No payment is taken at the time of
+            after we have confirmed a responding instructor match for you. No payment is taken at the time of
             submitting your request.</p>
             <p className="mt-3">If we are unable to find a match within 7 days, you will not be charged.</p>
           </Section>
 
           <Section title="5. Non-refundable once delivered">
-            Once we have delivered the match per Section 2, the Fee is considered earned and is <strong>non-refundable</strong>.
+            Once we have delivered the match per Section 2, the Standard Fee is considered earned and is <strong>non-refundable</strong>.
             This includes cases where:
             <ul className="list-disc pl-6 mt-2 space-y-1">
               <li>You change your mind or decide not to proceed with lessons;</li>
               <li>You are unable to reach the instructor after we provide their contact details;</li>
-              <li>The instructor becomes unavailable after we verify them;</li>
+              <li>The instructor becomes unresponsive or unavailable after we verify their response;</li>
               <li>You do not pass your driving test.</li>
             </ul>
             If you believe we have materially failed to deliver as promised, please contact us on the WhatsApp thread we used to coordinate your request within
@@ -62,7 +69,7 @@ export default function TermsPage() {
             We are a matchmaking service. We do not teach, schedule, or conduct driving lessons ourselves. All lessons are
             conducted directly between the learner and the instructor. We make no representation or warranty about
             instructor teaching quality, lesson availability, passing rates, or any other outcome once we have completed
-            the match. Pass rates displayed are sourced from publicly available data and are provided for information only.
+            the match.
           </Section>
 
           <Section title="7. Instructor relationship">
