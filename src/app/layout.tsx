@@ -12,7 +12,7 @@ export const metadata: Metadata = {
     template: '%s | Drive Finder SG',
   },
   description:
-    'Stop cold-calling 20 numbers. Tell us what you need and we will find you a vetted, high pass rate, available private driving instructor. $19 flat. No match, no charge.',
+    'Stop cold-calling 20 numbers. Tell us your test centre and we find you a private driving instructor who responds and is taking students. $19 flat. No match, no charge.',
   applicationName: 'Drive Finder SG',
   keywords: [
     'private driving instructor Singapore',
@@ -35,7 +35,7 @@ export const metadata: Metadata = {
   openGraph: {
     title: 'Drive Finder SG | Find a verified private driving instructor',
     description:
-      'Tired of dead phone numbers? We personally verify availability with top-rated private driving instructors and hand you the ones who will actually teach you.',
+      'Tired of dead phone numbers? We contact private driving instructors at your test centre, confirm who responds, and send you their details. $19 if matched, $0 if not.',
     url: SITE_URL,
     siteName: 'Drive Finder SG',
     locale: 'en_SG',
@@ -45,7 +45,7 @@ export const metadata: Metadata = {
     card: 'summary_large_image',
     title: 'Drive Finder SG | Find a verified private driving instructor',
     description:
-      'We personally verify availability with top-rated private driving instructors in Singapore and hand you the ones who will actually teach you. $19 flat.',
+      'We contact private driving instructors in Singapore, confirm who responds and is taking students, and send you their details. $19 if matched, $0 if not.',
   },
   robots: {
     index: true,
@@ -67,7 +67,7 @@ const jsonLd = {
   logo: `${SITE_URL}/icon.svg`,
   image: `${SITE_URL}/opengraph-image`,
   description:
-    'Concierge matching for Singapore private driving instructors. We verify availability with top-rated PDIs and send you the ones actually taking students.',
+    'Concierge matching for Singapore private driving instructors. We contact instructors, confirm who responds and is taking students, and send you their details.',
   priceRange: 'S$19',
   areaServed: { '@type': 'Country', name: 'Singapore' },
   parentOrganization: {
