@@ -1,5 +1,6 @@
 import { RequestForm } from '@/components/RequestForm'
 import { LogoFull } from '@/components/Logo'
+import { UniqAttribution } from '@/components/UniqAttribution'
 import Link from 'next/link'
 
 export default function LandingPage() {
@@ -85,7 +86,7 @@ function DataBadge() {
       <div className="container-page flex flex-col sm:flex-row items-center justify-center gap-4 sm:gap-8 text-xs text-slate-400 font-medium">
         <div className="flex items-center gap-2">
           <svg className="w-4 h-4 text-slate-300" fill="currentColor" viewBox="0 0 24 24"><path d="M12 1L3 5v6c0 5.55 3.84 10.74 9 12 5.16-1.26 9-6.45 9-12V5l-9-4z"/></svg>
-          <span>Official pass rate data</span>
+          <span>Official data</span>
         </div>
         <div className="flex items-center gap-2">
           <span className="h-1.5 w-1.5 rounded-full bg-emerald-500" />
@@ -123,7 +124,7 @@ function HowItWorks() {
           <StepCard
             n="03"
             title="You pay, we introduce"
-            desc="If we found you a good match, we send you a $19 payment link. Once you pay, we send you their name, number, and pass rate so you can contact them directly."
+            desc="If we found you a good match, we send you a $19 payment link. Once you pay, we send you their name and number so you can contact them directly."
             accent="from-violet-500/10 to-violet-500/0"
           />
         </div>
@@ -182,7 +183,7 @@ function ProblemSection() {
         </svg>
       ),
       title: 'Good ones are fully booked',
-      desc: 'The instructors with high pass rates are always full. The ones with open slots often have low pass rates.',
+      desc: 'The well-known instructors are usually full. Most learners spend weeks messaging contacts who never reply.',
     },
     {
       icon: (
@@ -190,8 +191,8 @@ function ProblemSection() {
           <path strokeLinecap="round" strokeLinejoin="round" d="M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728A9 9 0 015.636 5.636m12.728 12.728L5.636 5.636" />
         </svg>
       ),
-      title: 'No new instructors since 1987',
-      desc: 'No new private instructor licences have been issued since 1987. The pool only shrinks from here.',
+      title: 'Supply only shrinks',
+      desc: 'The private driving instructor pool in Singapore has been flat for years. Every year more retire than join.',
     },
   ]
   return (
@@ -275,11 +276,11 @@ function FAQSection() {
     },
     {
       q: "How do I receive my match?",
-      a: "Once you pay the $19, we send you the matched instructor's details (name, phone number, pass rate) so you can contact them directly.",
+      a: "Once you pay the $19, we send you the matched instructor's details (name and phone number) so you can contact them directly.",
     },
     {
-      q: "What if I don't like the match?",
-      a: "The $19 covers the research and matching. If you genuinely feel we sent a bad match, reach out within a week and we'll review individually. We want five star reviews more than $19.",
+      q: "What if the instructor doesn't work out?",
+      a: "Once we deliver the verified contact, our matchmaking is complete on our end. If you want a fresh search for a different instructor, we can put you on our watch list for $9 with a 30-day window.",
     },
     {
       q: 'Which driving centres do you cover?',
@@ -288,10 +289,6 @@ function FAQSection() {
     {
       q: 'What about motorcycles (Class 2B)?',
       a: 'There are no private instructors for motorcycle classes in Singapore. You have to enrol through one of the three driving schools. We match for cars only.',
-    },
-{
-      q: 'Is my data safe?',
-      a: 'We only share your first name and phone number with matched instructors. We never sell data, never spam, and delete records on request. Fully PDPA compliant.',
     },
   ]
   return (
@@ -355,7 +352,7 @@ function Footer() {
             <LogoFull />
             <p className="text-sm text-slate-400 mt-3 max-w-xs">
               Concierge matching for Singapore private driving instructors.
-              Powered by official pass rate data.
+              Sourced from the official SPF register.
             </p>
           </div>
           <div className="flex gap-12 text-sm">
@@ -377,8 +374,11 @@ function Footer() {
             </div>
           </div>
         </div>
-        <div className="mt-10 pt-6 border-t border-slate-200/60 flex flex-col md:flex-row items-center justify-between gap-2 text-xs text-slate-400">
-          <div>&copy; {new Date().getFullYear()} Drive Finder SG. A Uniq Labs project.</div>
+        <div className="mt-10 pt-6 border-t border-slate-200/60 flex flex-col md:flex-row items-center justify-between gap-3 text-xs text-slate-400">
+          <div className="flex items-center gap-3">
+            <span>&copy; {new Date().getFullYear()} Drive Finder SG.</span>
+            <UniqAttribution />
+          </div>
           <div>Not affiliated with any driving centre or regulatory body.</div>
         </div>
       </div>
