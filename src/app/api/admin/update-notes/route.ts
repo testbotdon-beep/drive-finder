@@ -37,6 +37,8 @@ export async function POST(req: NextRequest) {
   if (body.notes !== undefined) updates.notes = body.notes
   if (body.follow_up_at !== undefined) updates.follow_up_at = body.follow_up_at
   if (body.earned_cents !== undefined) updates.earned_cents = String(body.earned_cents)
+  if (body.watch_paid_at !== undefined) updates.watch_paid_at = body.watch_paid_at
+  if (body.watch_asked_at !== undefined) updates.watch_asked_at = body.watch_asked_at
 
   if (body.follow_up_at === '') {
     await redis.hdel(`${PREFIX}${body.requestId}`, 'follow_up_at')
@@ -45,6 +47,14 @@ export async function POST(req: NextRequest) {
   if (body.earned_cents === '' || body.earned_cents === null) {
     await redis.hdel(`${PREFIX}${body.requestId}`, 'earned_cents')
     delete updates.earned_cents
+  }
+  if (body.watch_paid_at === '') {
+    await redis.hdel(`${PREFIX}${body.requestId}`, 'watch_paid_at')
+    delete updates.watch_paid_at
+  }
+  if (body.watch_asked_at === '') {
+    await redis.hdel(`${PREFIX}${body.requestId}`, 'watch_asked_at')
+    delete updates.watch_asked_at
   }
 
   if (Object.keys(updates).length > 0) {
