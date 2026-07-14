@@ -117,7 +117,7 @@ export async function updateRequest(id: string, fields: Partial<MatchRequest>): 
   await redis.hset(`${REQUEST_PREFIX}${id}`, fields as unknown as Record<string, unknown>)
 }
 
-export async function listRequests(limit = 1000): Promise<MatchRequest[]> {
+export async function listRequests(limit = 200): Promise<MatchRequest[]> {
   const redis = getRedis()
   const ids = await redis.lrange(REQUEST_LIST_KEY, 0, limit - 1)
   if (!ids || ids.length === 0) return []
