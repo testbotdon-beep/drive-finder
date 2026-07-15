@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect, useCallback, useRef } from 'react'
 import { toast } from 'sonner'
 import { formatSGD, formatPhone, timeRemaining, toSGDigits } from '@/lib/utils'
 
@@ -157,11 +157,12 @@ function Dashboard({ password, onLogout }: { password: string; onLogout: () => v
   }
 
   function needsRecheck(instructorId: string): boolean {
-    if (contactStatus[instructorId] !== 'yes') return false
+    const status = contactStatus[instructorId]
+    if (status !== 'yes' && status !== 'no') return false
     const date = contactDates[instructorId]
     if (!date) return true
     const daysOld = (Date.now() - new Date(date).getTime()) / (1000 * 60 * 60 * 24)
-    return daysOld > 14
+    return daysOld > 30
   }
 
   function daysSinceContact(instructorId: string): number | null {
@@ -171,6 +172,9 @@ function Dashboard({ password, onLogout }: { password: string; onLogout: () => v
     return Math.floor((Date.now() - new Date(date).getTime()) / (1000 * 60 * 60 * 24))
   }
 
+  const failureCountRef = useRef(0)
+  const [pollPaused, setPollPaused] = useState(false)
+
   const load = useCallback(async () => {
     setLoading(true)
     try {
@@ -178,20 +182,52 @@ function Dashboard({ password, onLogout }: { password: string; onLogout: () => v
         headers: { Authorization: `Bearer ${password}` },
       })
       if (res.status === 401) { onLogout(); return }
+      if (!res.ok) throw new Error(`Status ${res.status}`)
       const data = await res.json()
       setRequests(data.requests || [])
       setInstructors(data.instructors || [])
       setMetaMap(data.meta || {})
-    } catch { toast.error('Failed to load') }
+      failureCountRef.current = 0
+      if (pollPaused) setPollPaused(false)
+    } catch {
+      failureCountRef.current += 1
+      if (failureCountRef.current >= 3) {
+        setPollPaused(true)
+        toast.error('Auto-refresh paused after 3 failures. Click Refresh to retry.')
+      } else {
+        toast.error('Failed to load')
+      }
+    }
     finally { setLoading(false) }
-  }, [password, onLogout])
+  }, [password, onLogout, pollPaused])
 
   useEffect(() => {
     load()
     loadContactStatus()
-    const interval = setInterval(() => { load(); loadContactStatus() }, 30000)
-    return () => clearInterval(interval)
-  }, [load, loadContactStatus])
+    let interval: ReturnType<typeof setInterval> | null = null
+    const startPolling = () => {
+      if (interval || pollPaused) return
+      interval = setInterval(() => {
+        if (document.visibilityState === 'visible' && !pollPaused) {
+          load()
+          loadContactStatus()
+        }
+      }, 120000)
+    }
+    const stopPolling = () => {
+      if (interval) { clearInterval(interval); interval = null }
+    }
+    const onVisChange = () => {
+      if (document.visibilityState === 'visible') startPolling()
+      else stopPolling()
+    }
+    if (document.visibilityState === 'visible') startPolling()
+    document.addEventListener('visibilitychange', onVisChange)
+    return () => {
+      stopPolling()
+      document.removeEventListener('visibilitychange', onVisChange)
+    }
+  }, [load, loadContactStatus, pollPaused])
 
   const activeStatuses = ['submitted', 'confirmed', 'pending']
   const completedStatuses = ['captured', 'delivered']
@@ -221,14 +257,19 @@ function Dashboard({ password, onLogout }: { password: string; onLogout: () => v
   const dueCount = requests.filter(isDue).length
 
   const totalEarned = requests.reduce((sum, r) => {
-    const delivered = completedStatuses.includes(r.status)
-    if (!delivered) return sum
     const meta = metaMap[r.id]
-    const override = meta?.earned_cents ? parseInt(String(meta.earned_cents), 10) : NaN
-    if (Number.isFinite(override)) return sum + override
-    const base = typeof r.amount_cents === 'number' ? r.amount_cents : parseInt(String(r.amount_cents), 10) || 0
-    const round2Paid = meta && String(meta.round) === '2' && meta.stage === 'paid' ? 1000 : 0
-    return sum + base + round2Paid
+    let leadEarned = 0
+    if (completedStatuses.includes(r.status)) {
+      const override = meta?.earned_cents ? parseInt(String(meta.earned_cents), 10) : NaN
+      if (Number.isFinite(override)) {
+        leadEarned += override
+      } else {
+        const base = typeof r.amount_cents === 'number' ? r.amount_cents : parseInt(String(r.amount_cents), 10) || 0
+        const round2Paid = meta && String(meta.round) === '2' && meta.stage === 'paid' ? 1000 : 0
+        leadEarned += base + round2Paid
+      }
+    }
+    return sum + leadEarned
   }, 0)
 
   const filteredInstructors = instructors.filter((i) => {
@@ -265,14 +306,7 @@ function Dashboard({ password, onLogout }: { password: string; onLogout: () => v
 
       <div className="max-w-6xl mx-auto px-6 pt-6">
         {/* Stats */}
-        <div className="grid grid-cols-2 md:grid-cols-6 gap-3 mb-6">
-          <Stat label="NEW REQUESTS" value={String(submittedCount)} color="#3b82f6" />
-          <Stat
-            label="FOLLOW UP TODAY"
-            value={String(dueCount)}
-            color={dueCount > 0 ? '#ef4444' : '#64748b'}
-            onClick={() => { setTab('requests'); setFilter('due') }}
-          />
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-6">
           <Stat
             label="RECHECK PDIs"
             value={String(instructors.filter((i) => needsRecheck(i.id)).length)}
@@ -286,12 +320,8 @@ function Dashboard({ password, onLogout }: { password: string; onLogout: () => v
 
         {/* Source breakdown */}
         {(() => {
-          const startOfMonth = new Date()
-          startOfMonth.setDate(1)
-          startOfMonth.setHours(0, 0, 0, 0)
-          const monthRequests = requests.filter((r) => new Date(r.created_at).getTime() >= startOfMonth.getTime())
           const sourceCounts: Record<string, number> = {}
-          for (const r of monthRequests) {
+          for (const r of requests) {
             const src = r.referral_source || 'Unknown'
             sourceCounts[src] = (sourceCounts[src] || 0) + 1
           }
@@ -299,7 +329,7 @@ function Dashboard({ password, onLogout }: { password: string; onLogout: () => v
           if (sorted.length === 0) return null
           return (
             <div className="bg-[#111d32] border border-white/5 rounded-xl p-4 mb-6">
-              <div className="text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-3">Sources this month ({monthRequests.length} requests)</div>
+              <div className="text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-3">Sources all time ({requests.length} requests)</div>
               <div className="flex flex-wrap gap-2">
                 {sorted.map(([src, n]) => (
                   <span key={src} className="px-2.5 py-1 rounded-lg bg-white/5 border border-white/5 text-[12px]">
@@ -761,7 +791,7 @@ function RequestCard({
       {/* Header */}
       <div className="flex items-start justify-between gap-4 mb-4">
         <div>
-          <div className="flex items-center gap-2 mb-2">
+          <div className="flex items-center gap-2 mb-2 flex-wrap">
             <span className={`text-[11px] font-bold px-2 py-0.5 rounded-md border ${statusStyles[request.status] || statusStyles.submitted}`}>
               {request.status.toUpperCase()}
             </span>
@@ -771,7 +801,16 @@ function RequestCard({
               </span>
             )}
           </div>
-          <div className="text-white font-semibold text-lg">{request.learner_name}</div>
+          <div className="flex items-center gap-2 flex-wrap">
+            <div className="text-white font-semibold text-lg">{request.learner_name}</div>
+            <button
+              onClick={() => { navigator.clipboard.writeText(request.id.slice(0, 8)); toast.success(`Copied ${request.id.slice(0, 8)}`) }}
+              className="text-[11px] font-mono px-2 py-0.5 rounded-md bg-white/5 border border-white/10 text-slate-400 hover:text-white hover:bg-white/10 transition cursor-pointer"
+              title="Click to copy ref code"
+            >
+              ref {request.id.slice(0, 8)}
+            </button>
+          </div>
           <div className="flex items-center gap-3 text-sm mt-1">
             <a href={`https://wa.me/65${toSGDigits(phone)}?text=${encodeURIComponent(`Hi ${request.learner_name.split(' ')[0]}, thanks for using Drive Finder SG. We will be looking for a PDI willing to undertake new learners and will let you know if any are available within the next 7 days!`)}`} target="_blank" className="text-emerald-400 hover:text-emerald-300 transition">
               {formatPhone(phone)}
@@ -833,8 +872,8 @@ function RequestCard({
 
         const templates = {
           followUp: `Hi ${firstName}, following up on if you'd like to proceed with us sending you the PDI's contact. Please do let us know, thanks!`,
-          matchFound: `Hi ${firstName}, good news!\n\nWe found an instructor for you at ${centre}. He is amongst the higher first time pass rate based on records. Please have a look at the screenshot below for proof of our conversation with the PDI.\n\nTo get his details to message him, please PayNow $19 to UEN: 202446262C. Name of recipient should automatically show Uniq Labs PTE LTD upon UEN entry.\n\nPlease let us know once paid, and upon confirmation we'll send you his details right away.\n\nCongrats, and all the best for your driving journey!`,
-          pdiDelivery: `Received payment! Here is the PDI info as shown below.\n\nPDI Info:\n\n${pdiBlocks}\n\nPlease do ask any questions you may have to the PDI from here on out and let your friends know about our service! All the best on your driving journey!`,
+          matchFound: `Hi ${firstName}, thanks for using Drive Finder SG!\n\nGood news! We found an instructor for you at ${centre}. Please have a look at the screenshot below for proof of our conversation with the PDI.\n\nTo get his details to message him, please PayNow $19 to UEN: 202446262C. Name of recipient should automatically show Uniq Labs PTE LTD upon UEN entry.\n\nPlease let us know once paid, and upon confirmation we'll send you his details right away.\n\nCongrats, and all the best for your driving journey!`,
+          pdiDelivery: `Received payment! Here is the PDI info as shown below.\n\nPDI Info:\n\n${pdiBlocks}\n\nPlease do ask any questions you may have to the PDI from here on out and let your friends know about our service! All the best on your driving journey!\n\nIf you have any follow up questions to ask us, please text our business account at: +65 8119 0308.`,
           round2Offer: `Hey ${firstName}, just an update. I checked with the top rated instructors at ${centre} for ${transmission} and they all seem to be fully booked at the moment.\n\nI do have a few more instructors at ${centre} that I can check with slightly lower pass rates, or I can check other centres like ${otherCentres} for you.\n\nEither option costs $10 for the extended search, excluding the contact reveal fee if we successfully find you a match. Let me know which you'd prefer or if you'd like to leave it for now, no worries either way!`,
           round2Paid: `Ok great, please PayNow $10 to UEN: 202446262C. Name of recipient should automatically show Uniq Labs PTE LTD upon UEN entry.\n\nPlease let us know once paid, and upon confirmation we'll start right away!`,
           noneFound: `Hey ${firstName}, unfortunately after checking all the manual/auto PDIs at ${centre}, none have slots right now. Wish we had better news. Holler if anything else comes up on your end.`,
@@ -851,8 +890,8 @@ function RequestCard({
                   Send PDI Info ({selectedInstructors.length}) ✅
                 </TplBtn>
               )}
-              <TplBtn href={wa(templates.round2Offer)} color="amber">Round 2 Offer ($10)</TplBtn>
-              <TplBtn href={wa(templates.round2Paid)} color="purple">Round 2 PayNow $10</TplBtn>
+              <TplBtn href={wa(templates.round2Offer)} color="slate">Round 2 Offer ($10)</TplBtn>
+              <TplBtn href={wa(templates.round2Paid)} color="slate">Round 2 PayNow $10</TplBtn>
               <TplBtn href={wa(templates.noneFound)} color="slate">No PDI Found, Close</TplBtn>
             </div>
             {selectedInstructors.length === 0 && (
@@ -888,6 +927,12 @@ function RequestCard({
             Tomorrow
           </button>
           <button
+            onClick={() => saveMeta({ follow_up_at: shiftDate(2) })}
+            className="px-2 py-1 rounded-md text-[11px] font-semibold bg-white/5 text-slate-400 hover:text-white border border-white/5 transition"
+          >
+            +2d
+          </button>
+          <button
             onClick={() => saveMeta({ follow_up_at: shiftDate(3) })}
             className="px-2 py-1 rounded-md text-[11px] font-semibold bg-white/5 text-slate-400 hover:text-white border border-white/5 transition"
           >
@@ -898,6 +943,18 @@ function RequestCard({
             className="px-2 py-1 rounded-md text-[11px] font-semibold bg-white/5 text-slate-400 hover:text-white border border-white/5 transition"
           >
             +7d
+          </button>
+          <button
+            onClick={() => saveMeta({ follow_up_at: shiftDate(10) })}
+            className="px-2 py-1 rounded-md text-[11px] font-semibold bg-white/5 text-slate-400 hover:text-white border border-white/5 transition"
+          >
+            +10d
+          </button>
+          <button
+            onClick={() => saveMeta({ follow_up_at: shiftDate(14) })}
+            className="px-2 py-1 rounded-md text-[11px] font-semibold bg-white/5 text-slate-400 hover:text-white border border-white/5 transition"
+          >
+            +14d
           </button>
           {followUpAt && (
             <button
@@ -1035,7 +1092,7 @@ function RequestCard({
                     />
                     <div className="flex-1 min-w-0">
                       <div className="text-white font-medium text-[15px]">{i.name}</div>
-                      <div className="text-xs text-slate-500">{i.test_centre} / Class {i.class_type} / ${i.hourly_rate}/hr</div>
+                      <div className="text-xs text-slate-500">{formatPhone(i.phone)} · {i.test_centre} / Class {i.class_type} / ${i.hourly_rate}/hr</div>
                       {instructorNotes[i.id] && (
                         <div className="mt-1 text-[11px] text-amber-300 bg-amber-500/10 border border-amber-500/20 rounded px-2 py-1 inline-block">
                           📝 {instructorNotes[i.id]}
