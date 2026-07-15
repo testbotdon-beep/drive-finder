@@ -85,7 +85,7 @@ function Dashboard({ password, onLogout }: { password: string; onLogout: () => v
   const [instructors, setInstructors] = useState<Instructor[]>([])
   const [loading, setLoading] = useState(true)
   const [tab, setTab] = useState<'requests' | 'instructors'>('requests')
-  const [filter, setFilter] = useState<'active' | 'due' | 'completed' | 'all'>('active')
+  const [filter, setFilter] = useState<'active' | 'due' | 'watch_candidate' | 'watch_asked' | 'watch_list' | 'completed' | 'all'>('active')
   const [centreFilter, setCentreFilter] = useState<string>('ALL')
   const [statusFilter, setStatusFilter] = useState<'ALL' | 'yes' | 'contacted' | 'no' | 'done' | 'unmarked'>('ALL')
   const [refSearch, setRefSearch] = useState<string>('')
@@ -137,6 +137,56 @@ function Dashboard({ password, onLogout }: { password: string; onLogout: () => v
       headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${password}` },
       body: JSON.stringify({ instructorId, status }),
     }).catch(() => {})
+
+    if (status === 'yes') {
+      const inst = instructors.find((i) => i.id === instructorId)
+      if (inst) {
+        const matchingWatchList = requests.filter((r) => {
+          const meta = metaMap[r.id]
+          if (!meta?.watch_paid_at) return false
+          if (['captured', 'delivered'].includes(r.status)) return false
+          if (r.test_centre !== 'ANY' && r.test_centre !== inst.test_centre) return false
+          if (String(r.class_type) !== String(inst.class_type)) return false
+          return true
+        })
+        if (matchingWatchList.length > 0) {
+          toast.success(
+            `${matchingWatchList.length} watch list buyer${matchingWatchList.length > 1 ? 's' : ''} match ${inst.test_centre} Class ${inst.class_type} — go to Watch List tab to deliver`,
+            { duration: 8000 }
+          )
+        }
+      }
+    }
+  }
+
+  function watchListMatchCount(instructor: Instructor): number {
+    return requests.filter((r) => {
+      const meta = metaMap[r.id]
+      if (!meta?.watch_paid_at) return false
+      if (['captured', 'delivered'].includes(r.status)) return false
+      if (r.test_centre !== 'ANY' && r.test_centre !== instructor.test_centre) return false
+      if (String(r.class_type) !== String(instructor.class_type)) return false
+      return true
+    }).length
+  }
+
+  async function backdateContact(instructorId: string) {
+    const current = contactDates[instructorId]
+    const defaultDate = current ? current.slice(0, 10) : new Date().toISOString().slice(0, 10)
+    const input = window.prompt(
+      `Backdate last contact for this instructor.\nFormat YYYY-MM-DD (e.g. 2026-04-17).`,
+      defaultDate
+    )
+    if (!input) return
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(input)) { alert('Invalid format. Use YYYY-MM-DD.'); return }
+    const iso = new Date(input + 'T12:00:00.000Z').toISOString()
+    if (!Number.isFinite(new Date(iso).getTime())) { alert('Invalid date.'); return }
+    setContactDates({ ...contactDates, [instructorId]: iso })
+    fetch('/api/admin/contact-status', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${password}` },
+      body: JSON.stringify({ instructorId, status: contactStatus[instructorId] || 'yes', updated_at: iso }),
+    }).catch(() => {})
   }
 
   function setContactDateInline(instructorId: string, dateStr: string) {
@@ -167,6 +217,13 @@ function Dashboard({ password, onLogout }: { password: string; onLogout: () => v
 
   function daysSinceContact(instructorId: string): number | null {
     if (!contactStatus[instructorId]) return null
+    const date = contactDates[instructorId]
+    if (!date) return null
+    return Math.floor((Date.now() - new Date(date).getTime()) / (1000 * 60 * 60 * 24))
+  }
+
+  function daysSinceYes(instructorId: string): number | null {
+    if (contactStatus[instructorId] !== 'yes') return null
     const date = contactDates[instructorId]
     if (!date) return null
     return Math.floor((Date.now() - new Date(date).getTime()) / (1000 * 60 * 60 * 24))
@@ -241,20 +298,69 @@ function Dashboard({ password, onLogout }: { password: string; onLogout: () => v
 
   const dueSortKey = (r: Request) => metaMap[r.id]?.follow_up_at || ''
 
+  const isWatchCandidate = (r: Request) => {
+    if (r.status !== 'submitted') return false
+    const meta = metaMap[r.id]
+    if (meta?.watch_paid_at) return false
+    if (meta?.watch_asked_at) return false
+    const suggested = instructors.filter((i) =>
+      (r.test_centre === 'ANY' || i.test_centre === r.test_centre) &&
+      String(i.class_type) === String(r.class_type)
+    )
+    if (suggested.length === 0) return false
+    return !suggested.some((i) => contactStatus[i.id] === 'yes')
+  }
+
+  const isWatchAsked = (r: Request) => {
+    const meta = metaMap[r.id]
+    if (!meta?.watch_asked_at) return false
+    if (meta?.watch_paid_at) return false
+    return !completedStatuses.includes(r.status)
+  }
+
+  const isOnWatchList = (r: Request) => {
+    const meta = metaMap[r.id]
+    if (!meta?.watch_paid_at) return false
+    if (r.status === 'voided') return false
+    return true
+  }
+
+  const watchListReadyMatch = (r: Request): boolean => {
+    return instructors.some((i) => {
+      if (r.test_centre !== 'ANY' && i.test_centre !== r.test_centre) return false
+      if (String(i.class_type) !== String(r.class_type)) return false
+      return contactStatus[i.id] === 'yes'
+    })
+  }
+
+  const watchListSortKey = (r: Request) => {
+    const paidAt = String(metaMap[r.id]?.watch_paid_at || '')
+    if (completedStatuses.includes(r.status)) return 'Z' + paidAt // delivered → bottom
+    if (watchListReadyMatch(r)) return 'A' + paidAt // ready → top
+    return 'M' + paidAt // waiting → middle
+  }
+  const watchAskedSortKey = (r: Request) => String(metaMap[r.id]?.watch_asked_at || '')
+
   const refQuery = refSearch.trim().toLowerCase()
   const refMatch = (r: Request) => !refQuery || r.id.toLowerCase().startsWith(refQuery) || (r.learner_name || '').toLowerCase().includes(refQuery)
 
   const filtered = refQuery
     ? requests.filter(refMatch)
-    : (filter === 'active' ? requests.filter((r) => activeStatuses.includes(r.status)) :
+    : (filter === 'active' ? requests.filter((r) => activeStatuses.includes(r.status) && !metaMap[r.id]?.watch_asked_at && !metaMap[r.id]?.watch_paid_at) :
     filter === 'completed' ? requests.filter((r) => completedStatuses.includes(r.status)) :
     filter === 'due' ? requests.filter(isDue).sort((a, b) => dueSortKey(a).localeCompare(dueSortKey(b))) :
+    filter === 'watch_candidate' ? requests.filter(isWatchCandidate) :
+    filter === 'watch_asked' ? requests.filter(isWatchAsked).sort((a, b) => watchAskedSortKey(b).localeCompare(watchAskedSortKey(a))) :
+    filter === 'watch_list' ? requests.filter(isOnWatchList).sort((a, b) => watchListSortKey(a).localeCompare(watchListSortKey(b))) :
     requests)
 
   const submittedCount = requests.filter((r) => r.status === 'submitted').length
   const completedCount = requests.filter((r) => completedStatuses.includes(r.status)).length
-  const activeCount = requests.filter((r) => activeStatuses.includes(r.status)).length
+  const activeCount = requests.filter((r) => activeStatuses.includes(r.status) && !metaMap[r.id]?.watch_asked_at && !metaMap[r.id]?.watch_paid_at).length
   const dueCount = requests.filter(isDue).length
+  const watchCandidateCount = requests.filter(isWatchCandidate).length
+  const watchAskedCount = requests.filter(isWatchAsked).length
+  const watchListCount = requests.filter(isOnWatchList).length
 
   const totalEarned = requests.reduce((sum, r) => {
     const meta = metaMap[r.id]
@@ -269,6 +375,7 @@ function Dashboard({ password, onLogout }: { password: string; onLogout: () => v
         leadEarned += base + round2Paid
       }
     }
+    if (meta?.watch_paid_at) leadEarned += 900
     return sum + leadEarned
   }, 0)
 
@@ -360,6 +467,15 @@ function Dashboard({ password, onLogout }: { password: string; onLogout: () => v
               <FilterBtn active={filter === 'due'} onClick={() => setFilter('due')}>
                 Follow up today {dueCount > 0 && <span className="ml-1 px-1.5 py-0.5 rounded bg-red-500 text-white text-[10px] font-bold">{dueCount}</span>}
               </FilterBtn>
+              <FilterBtn active={filter === 'watch_candidate'} onClick={() => setFilter('watch_candidate')}>
+                Watch candidates {watchCandidateCount > 0 && <span className="ml-1 px-1.5 py-0.5 rounded bg-amber-500 text-white text-[10px] font-bold">{watchCandidateCount}</span>}
+              </FilterBtn>
+              <FilterBtn active={filter === 'watch_asked'} onClick={() => setFilter('watch_asked')}>
+                Asked {watchAskedCount > 0 && <span className="ml-1 px-1.5 py-0.5 rounded bg-blue-500 text-white text-[10px] font-bold">{watchAskedCount}</span>}
+              </FilterBtn>
+              <FilterBtn active={filter === 'watch_list'} onClick={() => setFilter('watch_list')}>
+                Watch list ({watchListCount})
+              </FilterBtn>
               <FilterBtn active={filter === 'completed'} onClick={() => setFilter('completed')}>Completed ({completedCount})</FilterBtn>
               <FilterBtn active={filter === 'all'} onClick={() => setFilter('all')}>All ({requests.length})</FilterBtn>
               <input
@@ -385,6 +501,9 @@ function Dashboard({ password, onLogout }: { password: string; onLogout: () => v
               <Empty text={
                 filter === 'active' ? 'No active requests. Time to distribute.' :
                 filter === 'due' ? 'Nothing to follow up on today. Clear inbox.' :
+                filter === 'watch_candidate' ? 'No watch list candidates right now.' :
+                filter === 'watch_asked' ? 'No leads in the asked queue right now.' :
+                filter === 'watch_list' ? 'Nobody on the watch list yet.' :
                 'No requests yet.'
               } />
             ) : (
@@ -464,6 +583,15 @@ function Dashboard({ password, onLogout }: { password: string; onLogout: () => v
                         <span className="text-[10px] font-bold px-1.5 py-0.5 rounded bg-orange-500/20 text-orange-300 border border-orange-500/30">
                           RECHECK
                         </span>
+                      )}
+                      {status === 'yes' && watchListMatchCount(i) > 0 && (
+                        <button
+                          onClick={() => { setTab('requests'); setFilter('watch_list') }}
+                          className="text-[10px] font-bold px-1.5 py-0.5 rounded bg-cyan-500/20 text-cyan-300 border border-cyan-500/30 hover:bg-cyan-500/30 transition"
+                          title="Watch list buyers waiting for this centre + class"
+                        >
+                          ↔ {watchListMatchCount(i)} WATCH WAITING
+                        </button>
                       )}
                     </div>
                     <div className="flex items-center gap-2 mt-1">
@@ -590,6 +718,8 @@ function RequestCard({
   const [stageNotes, setStageNotes] = useState('')
   const [followUpAt, setFollowUpAt] = useState('')
   const [earnedCents, setEarnedCents] = useState<number | null>(null)
+  const [watchPaidAt, setWatchPaidAt] = useState('')
+  const [watchAskedAt, setWatchAskedAt] = useState('')
   const [metaLoaded, setMetaLoaded] = useState(false)
 
   useEffect(() => {
@@ -606,6 +736,8 @@ function RequestCard({
             setFollowUpAt(String(d.meta.follow_up_at || ''))
             const ec = d.meta.earned_cents ? parseInt(String(d.meta.earned_cents), 10) : NaN
             setEarnedCents(Number.isFinite(ec) ? ec : null)
+            setWatchPaidAt(String(d.meta.watch_paid_at || ''))
+            setWatchAskedAt(String(d.meta.watch_asked_at || ''))
           }
           setMetaLoaded(true)
         })
@@ -613,12 +745,14 @@ function RequestCard({
     }
   }, [request.id, password, metaLoaded])
 
-  function saveMeta(updates: { round?: number; stage?: string; notes?: string; follow_up_at?: string; earned_cents?: number | null }) {
+  function saveMeta(updates: { round?: number; stage?: string; notes?: string; follow_up_at?: string; earned_cents?: number | null; watch_paid_at?: string; watch_asked_at?: string }) {
     if (updates.round !== undefined) setRound(updates.round)
     if (updates.stage !== undefined) setStage(updates.stage)
     if (updates.notes !== undefined) setStageNotes(updates.notes)
     if (updates.follow_up_at !== undefined) setFollowUpAt(updates.follow_up_at)
     if (updates.earned_cents !== undefined) setEarnedCents(updates.earned_cents)
+    if (updates.watch_paid_at !== undefined) setWatchPaidAt(updates.watch_paid_at)
+    if (updates.watch_asked_at !== undefined) setWatchAskedAt(updates.watch_asked_at)
     fetch('/api/admin/update-notes', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${password}` },
@@ -724,6 +858,33 @@ function RequestCard({
     finally { setBusy(false) }
   }
 
+  async function deliverWatchMatch() {
+    if (selected.size === 0) { toast.error('Pick an instructor'); return }
+    const ok = window.confirm(
+      `Mark watch list match delivered for ${request.learner_name}?\n\n` +
+      `Watch fee already paid. No additional charge will be recorded.`
+    )
+    if (!ok) return
+    setBusy(true)
+    try {
+      const res = await fetch('/api/admin/deliver', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${password}` },
+        body: JSON.stringify({
+          requestId: request.id,
+          instructorIds: Array.from(selected),
+          notes,
+          amount_cents: 0,
+        }),
+      })
+      const data = await res.json()
+      if (!res.ok) throw new Error(data.error || 'Failed')
+      toast.success('Watch list match delivered!')
+      onChange()
+    } catch (e) { toast.error(e instanceof Error ? e.message : 'Failed') }
+    finally { setBusy(false) }
+  }
+
   async function fail() {
     setBusy(true)
     try {
@@ -795,7 +956,31 @@ function RequestCard({
             <span className={`text-[11px] font-bold px-2 py-0.5 rounded-md border ${statusStyles[request.status] || statusStyles.submitted}`}>
               {request.status.toUpperCase()}
             </span>
-            {request.status === 'submitted' && (
+            {watchPaidAt && request.status !== 'voided' && (() => {
+              const daysLeft = 30 - Math.floor((Date.now() - new Date(watchPaidAt).getTime()) / (1000 * 60 * 60 * 24))
+              const cls = daysLeft <= 6 ? 'bg-red-500/20 text-red-400 border-red-500/30' : daysLeft <= 15 ? 'bg-amber-500/20 text-amber-400 border-amber-500/30' : 'bg-cyan-500/20 text-cyan-400 border-cyan-500/30'
+              return (
+                <span className={`text-[11px] font-bold px-2 py-0.5 rounded-md border ${cls}`}>
+                  WATCH LIST · {daysLeft > 0 ? `${daysLeft}d` : daysLeft === 0 ? 'last day' : `expired ${Math.abs(daysLeft)}d`}
+                </span>
+              )
+            })()}
+            {watchPaidAt && !['captured', 'delivered'].includes(request.status) && suggested.some((i) => contactStatus[i.id] === 'yes') && (
+              <span className="text-[11px] font-bold px-2 py-0.5 rounded-md border bg-emerald-500/20 text-emerald-300 border-emerald-500/30 animate-pulse">
+                ★ READY TO DELIVER
+              </span>
+            )}
+            {request.status === 'submitted' && metaLoaded && !watchPaidAt && !watchAskedAt && suggested.length > 0 && !suggested.some((i) => contactStatus[i.id] === 'yes') && (
+              <span className="text-[11px] font-bold px-2 py-0.5 rounded-md border bg-amber-500/20 text-amber-400 border-amber-500/30">
+                WATCH CANDIDATE
+              </span>
+            )}
+            {watchAskedAt && !watchPaidAt && !['captured', 'delivered', 'voided'].includes(request.status) && (
+              <span className="text-[11px] font-bold px-2 py-0.5 rounded-md border bg-blue-500/20 text-blue-400 border-blue-500/30">
+                ASKED
+              </span>
+            )}
+            {request.status === 'submitted' && !watchPaidAt && (
               <span className={`text-xs font-medium ${remaining.expired ? 'text-red-400' : 'text-slate-500'}`}>
                 {remaining.label}
               </span>
@@ -873,9 +1058,12 @@ function RequestCard({
         const templates = {
           followUp: `Hi ${firstName}, following up on if you'd like to proceed with us sending you the PDI's contact. Please do let us know, thanks!`,
           matchFound: `Hi ${firstName}, thanks for using Drive Finder SG!\n\nGood news! We found an instructor for you at ${centre}. Please have a look at the screenshot below for proof of our conversation with the PDI.\n\nTo get his details to message him, please PayNow $19 to UEN: 202446262C. Name of recipient should automatically show Uniq Labs PTE LTD upon UEN entry.\n\nPlease let us know once paid, and upon confirmation we'll send you his details right away.\n\nCongrats, and all the best for your driving journey!`,
+          watchListUpsell: `We check PDI availability periodically and slots from other PDIs may open up.\n\nIf for any reason you want to change instructor within the next 30 days, we can put you on our watch list for the next 30 days for a one-off fee of $10. If a slot opens up in that window, you get the contact. No extra charges after the one-off fee of $10.\n\nDo let us know if you want us to add you to the watch list!`,
           pdiDelivery: `Received payment! Here is the PDI info as shown below.\n\nPDI Info:\n\n${pdiBlocks}\n\nPlease do ask any questions you may have to the PDI from here on out and let your friends know about our service! All the best on your driving journey!\n\nIf you have any follow up questions to ask us, please text our business account at: +65 8119 0308.`,
           round2Offer: `Hey ${firstName}, just an update. I checked with the top rated instructors at ${centre} for ${transmission} and they all seem to be fully booked at the moment.\n\nI do have a few more instructors at ${centre} that I can check with slightly lower pass rates, or I can check other centres like ${otherCentres} for you.\n\nEither option costs $10 for the extended search, excluding the contact reveal fee if we successfully find you a match. Let me know which you'd prefer or if you'd like to leave it for now, no worries either way!`,
           round2Paid: `Ok great, please PayNow $10 to UEN: 202446262C. Name of recipient should automatically show Uniq Labs PTE LTD upon UEN entry.\n\nPlease let us know once paid, and upon confirmation we'll start right away!`,
+          watchList: `Hey ${firstName}, thanks for using Drive Finder SG. We contacted the top instructors at ${centre} and they seem to be all booked. Slots may open up though.\n\nIf you want, we can put you on our watch list for the next 30 days for a one-off fee of $9. If a slot opens up in that window, you get the contact. No extra charges after the one-off fee of $9.\n\nWant me to add you to the watch list?`,
+          watchListPaid: `Ok great, please PayNow $9 to UEN: 202446262C. Name of recipient should automatically show Uniq Labs PTE LTD upon UEN entry.\n\nPlease let us know once paid, and I'll add you to the watch list.`,
           noneFound: `Hey ${firstName}, unfortunately after checking all the manual/auto PDIs at ${centre}, none have slots right now. Wish we had better news. Holler if anything else comes up on your end.`,
         }
 
@@ -885,11 +1073,24 @@ function RequestCard({
             <div className="flex flex-wrap gap-1.5">
               <TplBtn href={wa(templates.followUp)} color="blue">Follow Up</TplBtn>
               <TplBtn href={wa(templates.matchFound)} color="emerald">Match Found + $19 PayNow</TplBtn>
+              <TplBtn href={wa(templates.watchListUpsell)} color="purple">Watch List Upsell (+$10)</TplBtn>
               {selectedInstructors.length > 0 && (
-                <TplBtn href={wa(templates.pdiDelivery)} color="emerald">
+                <a
+                  href={wa(templates.pdiDelivery)}
+                  target="_blank"
+                  rel="noreferrer"
+                  onClick={(e) => {
+                    if (!window.confirm(`Reminder: send the Watch List Upsell (+$10) to ${firstName} AFTER this delivery.\n\nClick OK to proceed with delivery now.\nClick Cancel if you want to do something else first.`)) {
+                      e.preventDefault()
+                    }
+                  }}
+                  className="px-3 py-1.5 rounded-lg text-xs font-semibold border transition bg-emerald-500/15 hover:bg-emerald-500/25 text-emerald-300 border-emerald-500/30"
+                >
                   Send PDI Info ({selectedInstructors.length}) ✅
-                </TplBtn>
+                </a>
               )}
+              <TplBtn href={wa(templates.watchList)} color="amber">Watch List Offer ($9)</TplBtn>
+              <TplBtn href={wa(templates.watchListPaid)} color="purple">Watch List PayNow $9</TplBtn>
               <TplBtn href={wa(templates.round2Offer)} color="slate">Round 2 Offer ($10)</TplBtn>
               <TplBtn href={wa(templates.round2Paid)} color="slate">Round 2 PayNow $10</TplBtn>
               <TplBtn href={wa(templates.noneFound)} color="slate">No PDI Found, Close</TplBtn>
@@ -966,6 +1167,76 @@ function RequestCard({
           )}
         </div>
       )}
+
+      {/* Watch list */}
+      {(['submitted', 'confirmed', 'pending'].includes(request.status)) && metaLoaded && (() => {
+        const daysLeft = watchPaidAt
+          ? 30 - Math.floor((Date.now() - new Date(watchPaidAt).getTime()) / (1000 * 60 * 60 * 24))
+          : null
+        const badgeColor = daysLeft === null ? 'slate' : daysLeft <= 6 ? 'red' : daysLeft <= 15 ? 'amber' : 'emerald'
+        const colorClasses: Record<string, string> = {
+          emerald: 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20',
+          amber: 'bg-amber-500/10 text-amber-400 border-amber-500/20',
+          red: 'bg-red-500/10 text-red-400 border-red-500/20',
+          slate: 'bg-white/5 text-slate-400 border-white/5',
+        }
+        return (
+          <div className="mb-4 flex items-center gap-2 flex-wrap">
+            <span className="text-[11px] font-bold text-slate-500 uppercase tracking-widest">Watch list</span>
+            {watchPaidAt ? (
+              <>
+                <div className={`px-2 py-1 rounded-md text-[11px] font-semibold border ${colorClasses[badgeColor]}`}>
+                  {daysLeft !== null && daysLeft > 0 ? `${daysLeft}d left` : daysLeft === 0 ? 'Last day' : `Expired ${Math.abs(daysLeft || 0)}d ago`}
+                </div>
+                <span className="text-[11px] text-slate-500">paid {new Date(watchPaidAt).toLocaleDateString('en-SG', { timeZone: 'Asia/Singapore' })}</span>
+                <button
+                  onClick={() => { if (window.confirm('Remove from watch list?')) saveMeta({ watch_paid_at: '' }) }}
+                  className="px-2 py-1 rounded-md text-[11px] font-semibold bg-red-500/10 text-red-400 hover:text-red-300 border border-red-500/20 transition"
+                >
+                  Remove
+                </button>
+              </>
+            ) : (
+              <>
+                {watchAskedAt ? (
+                  <>
+                    <div className="px-2 py-1 rounded-md text-[11px] font-semibold border bg-blue-500/10 text-blue-400 border-blue-500/20">
+                      Asked {new Date(watchAskedAt).toLocaleDateString('en-SG', { timeZone: 'Asia/Singapore' })}
+                    </div>
+                    <button
+                      onClick={() => saveMeta({ watch_paid_at: new Date().toISOString() })}
+                      className="px-2 py-1 rounded-md text-[11px] font-semibold bg-emerald-500/10 text-emerald-400 hover:text-emerald-300 border border-emerald-500/20 transition"
+                    >
+                      Mark watch paid ($9)
+                    </button>
+                    <button
+                      onClick={() => saveMeta({ watch_asked_at: '' })}
+                      className="px-2 py-1 rounded-md text-[11px] font-semibold bg-red-500/10 text-red-400 hover:text-red-300 border border-red-500/20 transition"
+                    >
+                      Unmark asked
+                    </button>
+                  </>
+                ) : (
+                  <>
+                    <button
+                      onClick={() => saveMeta({ watch_asked_at: new Date().toISOString() })}
+                      className="px-2 py-1 rounded-md text-[11px] font-semibold bg-blue-500/10 text-blue-400 hover:text-blue-300 border border-blue-500/20 transition"
+                    >
+                      Mark as asked
+                    </button>
+                    <button
+                      onClick={() => saveMeta({ watch_paid_at: new Date().toISOString() })}
+                      className="px-2 py-1 rounded-md text-[11px] font-semibold bg-emerald-500/10 text-emerald-400 hover:text-emerald-300 border border-emerald-500/20 transition"
+                    >
+                      Mark watch paid ($9)
+                    </button>
+                  </>
+                )}
+              </>
+            )}
+          </div>
+        )
+      })()}
 
       {/* Internal notes */}
       {(['submitted', 'confirmed', 'pending'].includes(request.status)) && metaLoaded && (
@@ -1132,6 +1403,12 @@ function RequestCard({
               className="px-4 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white text-sm font-semibold transition disabled:opacity-40 disabled:cursor-not-allowed">
               {busy ? 'Working...' : `Deliver @ ${formatSGD(earnedCents ?? (typeof request.amount_cents === 'number' ? request.amount_cents : parseInt(String(request.amount_cents), 10) || 0))} (${selected.size})`}
             </button>
+            {watchPaidAt && (
+              <button onClick={deliverWatchMatch} disabled={busy || selected.size === 0}
+                className="px-4 py-2.5 rounded-xl bg-cyan-600 hover:bg-cyan-500 text-white text-sm font-semibold transition disabled:opacity-40 disabled:cursor-not-allowed">
+                {busy ? 'Working...' : `Deliver Watch Match (${selected.size})`}
+              </button>
+            )}
             {earnedCents !== null && earnedCents > 0 && (
               <button onClick={closeNoMatch} disabled={busy}
                 className="px-4 py-2.5 rounded-xl bg-amber-500/15 hover:bg-amber-500/25 border border-amber-500/30 text-amber-300 text-sm font-semibold transition disabled:opacity-40">
@@ -1160,6 +1437,32 @@ function RequestCard({
           )}
         </>
       )}
+
+      {/* Post-delivery support templates */}
+      {['captured', 'delivered'].includes(request.status) && (() => {
+        const firstName = (request.learner_name || '').split(' ')[0] || request.learner_name
+        const wphone = toSGDigits(request.learner_phone)
+        const wa = (text: string) => `https://wa.me/65${wphone}?text=${encodeURIComponent(text)}`
+        const unresponsiveTemplate = `Hi ${firstName},\n\nThank you for informing us of the situation.\n\nWe understand the frustration of an instructor ceasing to respond. However, in accordance with our terms of service, we are unable to issue a refund. Our matchmaking process is considered complete once the verified contact has been delivered.\n\nAs a gesture of goodwill, we would like to place you on our watch list for the next 30 days at no charge (normally a chargeable service). During this period, we re-contact private instructors and notify you as soon as a new slot becomes available. There would be no additional fee if we find you a match.\n\nPlease let us know if you would like us to proceed with this process, and we will add you to our watch list. Thank you again for using Drive Finder SG.`
+
+        return (
+          <div className="mb-4 p-4 rounded-xl bg-amber-500/5 border border-amber-500/20">
+            <div className="text-[10px] font-bold text-amber-400 uppercase tracking-widest mb-2">Post-delivery support</div>
+            <div className="flex flex-wrap gap-1.5 mb-2">
+              <TplBtn href={wa(unresponsiveTemplate)} color="amber">PDI Unresponsive · Free Watch Offer</TplBtn>
+              {!watchPaidAt && (
+                <button
+                  onClick={() => saveMeta({ watch_paid_at: new Date().toISOString() })}
+                  className="px-3 py-1.5 rounded-lg text-xs font-semibold bg-cyan-500/15 hover:bg-cyan-500/25 text-cyan-300 border border-cyan-500/30 transition"
+                >
+                  Add to Watch List (Free Goodwill)
+                </button>
+              )}
+            </div>
+            <div className="text-[11px] text-slate-500 italic">For buyers who say their matched PDI stopped responding. Send template, then click "Add to Watch List" once they accept.</div>
+          </div>
+        )
+      })()}
 
       {/* Completed states */}
       {!['submitted', 'confirmed', 'pending'].includes(request.status) && (
