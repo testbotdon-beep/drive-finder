@@ -771,6 +771,7 @@ function RequestCard({
   const remaining = timeRemaining(request.deadline_at)
 
   const suggested = instructors.filter((i) => {
+    if (contactStatus[i.id] === 'done') return false
     if (request.test_centre !== 'ANY' && i.test_centre !== request.test_centre) return false
     if (String(i.class_type) !== String(request.class_type)) return false
     return true
