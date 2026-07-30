@@ -23,5 +23,9 @@ export async function GET(req: NextRequest) {
     }
   })
 
-  return NextResponse.json({ requests, instructors, meta: metaMap })
+  // Manual earnings correction (e.g. watch fees erased by watch-list removals). See drivefinder:earnings-adjustment-note.
+  const adjustmentRaw = await redis.get('drivefinder:earnings-adjustment')
+  const adjustment_cents = Number(adjustmentRaw) || 0
+
+  return NextResponse.json({ requests, instructors, meta: metaMap, adjustment_cents })
 }

@@ -93,6 +93,7 @@ function Dashboard({ password, onLogout }: { password: string; onLogout: () => v
   const [contactDates, setContactDates] = useState<Record<string, string>>({})
   const [instructorNotes, setInstructorNotes] = useState<Record<string, string>>({})
   const [metaMap, setMetaMap] = useState<Record<string, Record<string, string>>>({})
+  const [adjustmentCents, setAdjustmentCents] = useState(0)
 
   const loadContactStatus = useCallback(async () => {
     try {
@@ -244,6 +245,7 @@ function Dashboard({ password, onLogout }: { password: string; onLogout: () => v
       setRequests(data.requests || [])
       setInstructors(data.instructors || [])
       setMetaMap(data.meta || {})
+      setAdjustmentCents(Number(data.adjustment_cents) || 0)
       failureCountRef.current = 0
       if (pollPaused) setPollPaused(false)
     } catch {
@@ -377,7 +379,7 @@ function Dashboard({ password, onLogout }: { password: string; onLogout: () => v
     }
     if (meta?.watch_paid_at) leadEarned += 900
     return sum + leadEarned
-  }, 0)
+  }, adjustmentCents)
 
   const filteredInstructors = instructors.filter((i) => {
     if (centreFilter !== 'ALL' && i.test_centre !== centreFilter) return false
