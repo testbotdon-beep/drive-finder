@@ -1,6 +1,7 @@
 import { RequestForm } from '@/components/RequestForm'
 import { LogoFull } from '@/components/Logo'
 import { UniqAttribution } from '@/components/UniqAttribution'
+import { DriveLabFloat } from '@/components/DriveLabFloat'
 import Link from 'next/link'
 
 export default function LandingPage() {
@@ -16,13 +17,32 @@ export default function LandingPage() {
       <FAQSection />
       <FinalCTA />
       <Footer />
+      <DriveLabFloat />
     </main>
   )
 }
 
 function Header() {
   return (
-    <header className="fixed top-0 left-0 right-0 z-50 bg-white/80 backdrop-blur-lg border-b border-slate-100/80">
+    <header className="fixed top-0 left-0 right-0 z-50">
+      <a
+        href="https://drivelabsg.uqlabs.co/?src=drivefinder-bar"
+        target="_blank"
+        rel="noopener"
+        className="group block bg-[#0a1628] hover:bg-[#0d1c30] transition-colors"
+      >
+        <div className="container-page flex items-center justify-center gap-2.5 h-9 text-[12.5px] font-medium">
+          <span className="hidden sm:inline-flex h-1.5 w-1.5 rounded-full bg-emerald-400 shrink-0" />
+          <span className="text-slate-300 truncate">
+            Practise the circuit free in your browser.
+            <span className="hidden sm:inline"> No account, no card.</span>
+          </span>
+          <span className="text-emerald-400 font-semibold whitespace-nowrap group-hover:underline">
+            Try Drive Lab
+          </span>
+        </div>
+      </a>
+      <div className="bg-white/80 backdrop-blur-lg border-b border-slate-100/80">
       <div className="container-page flex items-center justify-between h-16">
         <Link href="/">
           <LogoFull />
@@ -34,6 +54,7 @@ function Header() {
             Get Matched
           </a>
         </nav>
+      </div>
       </div>
     </header>
   )
@@ -55,7 +76,7 @@ function Hero() {
           </div>
 
           <h1 className="heading-display text-[2.5rem] md:text-[3.5rem] lg:text-[4rem] text-white mb-6 text-balance leading-[1.08]">
-            Your next driving instructor
+            Your next driving instructor{' '}
             <br className="hidden sm:block" />
             is ready for your call.
           </h1>
@@ -236,9 +257,51 @@ function FormSection() {
             30 seconds. Completely free. We'll get back to you within 7 days.
           </p>
         </div>
-        <RequestForm />
+        <div className="grid lg:grid-cols-[minmax(0,1fr)_320px] gap-6 lg:gap-8 items-start max-w-2xl lg:max-w-5xl mx-auto">
+          <RequestForm />
+          <DriveLabAd />
+        </div>
       </div>
     </section>
+  )
+}
+
+function DriveLabAd() {
+  return (
+    <aside className="rounded-2xl bg-[#0a1628] overflow-hidden relative lg:sticky lg:top-32">
+      <div className="absolute inset-0 bg-[radial-gradient(ellipse_80%_60%_at_75%_0%,rgba(16,185,129,0.14),transparent_70%)]" />
+      <div className="relative p-6">
+        <div className="inline-flex items-center gap-1.5 text-[11px] font-bold tracking-[0.1em] uppercase text-emerald-400 mb-3">
+          <span className="block w-4 h-0.5 rounded-sm bg-emerald-400" />
+          Also from us
+        </div>
+        <h3 className="text-lg font-bold text-white leading-snug mb-2.5">
+          Practise the circuit online before your first test.
+        </h3>
+        <p className="text-[14px] text-slate-300 leading-relaxed mb-4">
+          Drive Lab is our browser sim of the Singapore test circuit. The crank course is
+          free and unlimited. No account, no card.
+        </p>
+        <ul className="space-y-2 mb-5">
+          {['Cockpit, chase and top-down views', 'Live mirrors', 'Faults called instantly'].map((f) => (
+            <li key={f} className="flex items-start gap-2 text-[13px] text-slate-400">
+              <svg className="w-3.5 h-3.5 mt-0.5 text-emerald-400 shrink-0" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" d="M4.5 12.75l6 6 9-13.5" />
+              </svg>
+              {f}
+            </li>
+          ))}
+        </ul>
+        <a
+          href="https://drivelabsg.uqlabs.co/?src=drivefinder-form"
+          target="_blank"
+          rel="noopener"
+          className="btn-primary btn-cta w-full text-[15px]"
+        >
+          Try it free
+        </a>
+      </div>
+    </aside>
   )
 }
 

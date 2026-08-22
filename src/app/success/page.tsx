@@ -58,6 +58,9 @@ function SuccessContent() {
                 title="What happens next"
                 desc="We'll send you the verified instructor's details (name, number, pass rate) so you can contact them directly."
               />
+              <div className="mt-6">
+                <DriveLabStrip />
+              </div>
             </>
           ) : (
             <>
@@ -79,9 +82,11 @@ function SuccessContent() {
                 </svg>
                 Message us to get prioritised for free
               </a>
-              <p className="text-center text-xs text-slate-400 mb-8">
+              <p className="text-center text-xs text-slate-400 mb-6">
                 Most prioritised requests are matched within 48 hours.
               </p>
+
+              <DriveLabStrip />
 
               <div className="space-y-3 mb-2">
                 <InfoRow
@@ -121,6 +126,45 @@ export default function SuccessPage() {
     }>
       <SuccessContent />
     </Suspense>
+  )
+}
+
+function DriveLabStrip() {
+  return (
+    <a
+      href="https://drivelabsg.uqlabs.co/?src=drivefinder-success"
+      target="_blank"
+      rel="noopener"
+      className="group block rounded-xl bg-[#0a1628] overflow-hidden relative mb-6 hover:bg-[#0d1c30] transition-colors"
+    >
+      <div className="absolute inset-0 bg-[radial-gradient(ellipse_70%_70%_at_85%_0%,rgba(16,185,129,0.16),transparent_70%)]" />
+      <div className="relative p-6">
+        <div className="inline-flex items-center gap-1.5 text-[11px] font-bold tracking-[0.1em] uppercase text-emerald-400 mb-3">
+          <span className="block w-4 h-0.5 rounded-sm bg-emerald-400" />
+          While you wait
+        </div>
+        <div className="text-xl font-bold text-white leading-snug mb-2.5 text-balance">
+          Practise the circuit online before your first test.
+        </div>
+        <p className="text-[14px] text-slate-300 leading-relaxed mb-4">
+          Drive Lab is our browser sim of the Singapore test circuit. The crank course is
+          free and unlimited. No account, no card.
+        </p>
+        <ul className="hidden sm:block space-y-2 mb-5">
+          {['Cockpit, chase and top-down views', 'Live mirrors', 'Faults called instantly'].map((f) => (
+            <li key={f} className="flex items-start gap-2 text-[13px] text-slate-400">
+              <svg className="w-3.5 h-3.5 mt-0.5 text-emerald-400 shrink-0" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" d="M4.5 12.75l6 6 9-13.5" />
+              </svg>
+              {f}
+            </li>
+          ))}
+        </ul>
+        <span className="btn-primary btn-cta w-full text-[15px] py-3.5">
+          Try Drive Lab free
+        </span>
+      </div>
+    </a>
   )
 }
 
