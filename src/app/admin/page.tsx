@@ -4,6 +4,15 @@ import { useState, useEffect, useCallback, useRef } from 'react'
 import { toast } from 'sonner'
 import { formatSGD, formatPhone, timeRemaining, toSGDigits } from '@/lib/utils'
 
+/**
+ * Drive Lab cross-sell, one wording in one place.
+ *
+ * Plain domain on purpose: a tracked link reads as an ad inside a thread where
+ * we are also asking for a PayNow transfer. The $19 a month stays on the site,
+ * a second price here would read as a bait.
+ */
+const DRIVE_LAB_PITCH = `Make sure you check out Drive Lab too, a realistic online driving simulator made for the Singapore driving test. Very useful for circuit revision without having to wait and book for lessons in person. Try drivelabsg.uqlabs.co now!`
+
 type Instructor = {
   id: string
   name: string
@@ -1060,13 +1069,13 @@ function RequestCard({
 
         const templates = {
           followUp: `Hi ${firstName}, following up on if you'd like to proceed with us sending you the PDI's contact. Please do let us know, thanks!`,
-          matchFound: `Hi ${firstName}, thanks for using Drive Finder SG!\n\nGood news! We found an instructor for you at ${centre}. Please have a look at the screenshot below for proof of our conversation with the PDI.\n\nTo get his details to message him, please PayNow $19 to UEN: 202446262C. Name of recipient should automatically show Uniq Labs PTE LTD upon UEN entry.\n\nPlease let us know once paid, and upon confirmation we'll send you his details right away.\n\nCongrats, and all the best for your driving journey!`,
+          matchFound: `Hi ${firstName}, thanks for using Drive Finder SG!\n\nGood news! We found an instructor for you at ${centre}. Please have a look at the screenshot below for proof of our conversation with the PDI.\n\nTo get his details to message him, please PayNow $19 to UEN: 202446262C. Name of recipient should automatically show Uniq Labs PTE LTD upon UEN entry.\n\nPlease let us know once paid, and upon confirmation we'll send you his details right away.\n\nCongrats, and all the best for your driving journey!\n\n${DRIVE_LAB_PITCH}`,
           watchListUpsell: `We check PDI availability periodically and slots from other PDIs may open up.\n\nIf for any reason you want to change instructor within the next 30 days, we can put you on our watch list for the next 30 days for a one-off fee of $10. If a slot opens up in that window, you get the contact. No extra charges after the one-off fee of $10.\n\nDo let us know if you want us to add you to the watch list!`,
           pdiDelivery: `Received payment! Here is the PDI info as shown below.\n\nPDI Info:\n\n${pdiBlocks}\n\nPlease do ask any questions you may have to the PDI from here on out and let your friends know about our service! All the best on your driving journey!\n\nIf you have any follow up questions to ask us, please text our business account at: +65 8119 0308.`,
           round2Offer: `Hey ${firstName}, just an update. I checked with the top rated instructors at ${centre} for ${transmission} and they all seem to be fully booked at the moment.\n\nI do have a few more instructors at ${centre} that I can check with slightly lower pass rates, or I can check other centres like ${otherCentres} for you.\n\nEither option costs $10 for the extended search, excluding the contact reveal fee if we successfully find you a match. Let me know which you'd prefer or if you'd like to leave it for now, no worries either way!`,
           round2Paid: `Ok great, please PayNow $10 to UEN: 202446262C. Name of recipient should automatically show Uniq Labs PTE LTD upon UEN entry.\n\nPlease let us know once paid, and upon confirmation we'll start right away!`,
-          watchList: `Hey ${firstName}, thanks for using Drive Finder SG. We contacted the top instructors at ${centre} and they seem to be all booked. Slots may open up though.\n\nIf you want, we can put you on our watch list for the next 30 days for a one-off fee of $9. If a slot opens up in that window, you get the contact. No extra charges after the one-off fee of $9.\n\nWant me to add you to the watch list?`,
-          watchListPaid: `Ok great, please PayNow $9 to UEN: 202446262C. Name of recipient should automatically show Uniq Labs PTE LTD upon UEN entry.\n\nPlease let us know once paid, and I'll add you to the watch list.`,
+          watchList: `Hey ${firstName}, thanks for using Drive Finder SG. We contacted the top instructors at ${centre} and they seem to be all booked. Slots may open up though.\n\nIf you want, we can put you on our watch list for the next 30 days for a one-off fee of $9. If a slot opens up in that window, you get the contact. No extra charges after the one-off fee of $9.\n\n${DRIVE_LAB_PITCH}\n\nWant me to add you to the watch list?`,
+          watchListPaid: `Ok great, please PayNow $9 to UEN: 202446262C. Name of recipient should automatically show Uniq Labs PTE LTD upon UEN entry.\n\nPlease let us know once paid, and I'll add you to the watch list.\n\n${DRIVE_LAB_PITCH}`,
           noneFound: `Hey ${firstName}, unfortunately after checking all the manual/auto PDIs at ${centre}, none have slots right now. Wish we had better news. Holler if anything else comes up on your end.`,
         }
 
