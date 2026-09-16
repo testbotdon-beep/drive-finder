@@ -102,6 +102,7 @@ function Dashboard({ password, onLogout }: { password: string; onLogout: () => v
   const [contactDates, setContactDates] = useState<Record<string, string>>({})
   const [instructorNotes, setInstructorNotes] = useState<Record<string, string>>({})
   const [metaMap, setMetaMap] = useState<Record<string, Record<string, string>>>({})
+  const [listVerified, setListVerified] = useState(true)
   const [adjustmentCents, setAdjustmentCents] = useState(0)
 
   const loadContactStatus = useCallback(async () => {
@@ -255,6 +256,7 @@ function Dashboard({ password, onLogout }: { password: string; onLogout: () => v
       setInstructors(data.instructors || [])
       setMetaMap(data.meta || {})
       setAdjustmentCents(Number(data.adjustment_cents) || 0)
+      setListVerified(data.verified !== false)
       failureCountRef.current = 0
       if (pollPaused) setPollPaused(false)
     } catch {
@@ -423,6 +425,22 @@ function Dashboard({ password, onLogout }: { password: string; onLogout: () => v
       </header>
 
       <div className="max-w-6xl mx-auto px-6 pt-6">
+        {/* Shown only when the server could not confirm the list against the
+            database, so a stale list is never mistaken for a current one. */}
+        {!listVerified && (
+          <div className="mb-4 rounded-xl border border-amber-500/40 bg-amber-500/10 px-4 py-3 text-sm text-amber-200 flex items-center justify-between gap-4">
+            <span>
+              Could not reach the database just now, so this list may be missing very recent sign ups.
+            </span>
+            <button
+              onClick={load}
+              className="shrink-0 rounded-lg bg-amber-500 px-3 py-1.5 font-medium text-black hover:bg-amber-400 transition"
+            >
+              Retry
+            </button>
+          </div>
+        )}
+
         {/* Stats */}
         <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-6">
           <Stat
