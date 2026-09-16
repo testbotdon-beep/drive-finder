@@ -1,20 +1,10 @@
-import { Redis } from '@upstash/redis'
 import { readFileSync } from 'fs'
 import path from 'path'
+import { getRedis } from './redis'
+import { addRequestToSnapshot, patchRequestInSnapshot } from './snapshot'
 
-let _redis: Redis | null = null
-
-export function getRedis(): Redis {
-  if (!_redis) {
-    const url = process.env.UPSTASH_REDIS_REST_URL
-    const token = process.env.UPSTASH_REDIS_REST_TOKEN
-    if (!url || !token) {
-      throw new Error('UPSTASH_REDIS_REST_URL and UPSTASH_REDIS_REST_TOKEN must be set')
-    }
-    _redis = new Redis({ url, token })
-  }
-  return _redis
-}
+// Re-exported so existing callers can keep importing it from here.
+export { getRedis }
 
 // Instructors are static, loaded from the SPF JSON file at build/runtime
 let _instructors: Instructor[] | null = null
@@ -103,6 +93,9 @@ export async function createRequest(req: MatchRequest): Promise<void> {
   const redis = getRedis()
   await redis.hset(`${REQUEST_PREFIX}${req.id}`, req as unknown as Record<string, unknown>)
   await redis.lpush(REQUEST_LIST_KEY, req.id)
+  // Keep the dashboard cache in step. Best effort: the hash above is the source
+  // of truth, so a failure here only means a rebuild on the next read.
+  await addRequestToSnapshot(req)
 }
 
 export async function getRequest(id: string): Promise<MatchRequest | null> {
@@ -115,6 +108,7 @@ export async function getRequest(id: string): Promise<MatchRequest | null> {
 export async function updateRequest(id: string, fields: Partial<MatchRequest>): Promise<void> {
   const redis = getRedis()
   await redis.hset(`${REQUEST_PREFIX}${id}`, fields as unknown as Record<string, unknown>)
+  await patchRequestInSnapshot(id, fields)
 }
 
 export async function listRequests(limit = 1000): Promise<MatchRequest[]> {

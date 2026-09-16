@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getRedis } from '@/lib/db'
+import { getSnapshot, patchInstructorNoteInSnapshot } from '@/lib/snapshot'
 
 const KEY = 'drivefinder:instructor-notes'
 
@@ -9,9 +10,9 @@ export async function GET(req: NextRequest) {
   if (!pw || auth !== `Bearer ${pw}`) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
   }
-  const redis = getRedis()
-  const data = await redis.hgetall(KEY)
-  return NextResponse.json({ notes: data || {} })
+  // Served from the shared snapshot so a dashboard load reads one key, not four.
+  const snap = await getSnapshot()
+  return NextResponse.json({ notes: snap.instructorNotes || {} })
 }
 
 export async function POST(req: NextRequest) {
@@ -31,5 +32,6 @@ export async function POST(req: NextRequest) {
   } else {
     await redis.hset(KEY, { [body.instructorId]: note })
   }
+  await patchInstructorNoteInSnapshot(body.instructorId, note)
   return NextResponse.json({ ok: true })
 }

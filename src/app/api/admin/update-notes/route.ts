@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getRedis } from '@/lib/db'
+import { patchMetaInSnapshot } from '@/lib/snapshot'
 
 const PREFIX = 'drivefinder:req-meta:'
 
@@ -31,6 +32,7 @@ export async function POST(req: NextRequest) {
   }
 
   const redis = getRedis()
+  const cleared: string[] = []
   const updates: Record<string, string> = {}
   if (body.round !== undefined) updates.round = String(body.round)
   if (body.stage !== undefined) updates.stage = body.stage
@@ -43,23 +45,29 @@ export async function POST(req: NextRequest) {
   if (body.follow_up_at === '') {
     await redis.hdel(`${PREFIX}${body.requestId}`, 'follow_up_at')
     delete updates.follow_up_at
+    cleared.push('follow_up_at')
   }
   if (body.earned_cents === '' || body.earned_cents === null) {
     await redis.hdel(`${PREFIX}${body.requestId}`, 'earned_cents')
     delete updates.earned_cents
+    cleared.push('earned_cents')
   }
   if (body.watch_paid_at === '') {
     await redis.hdel(`${PREFIX}${body.requestId}`, 'watch_paid_at')
     delete updates.watch_paid_at
+    cleared.push('watch_paid_at')
   }
   if (body.watch_asked_at === '') {
     await redis.hdel(`${PREFIX}${body.requestId}`, 'watch_asked_at')
     delete updates.watch_asked_at
+    cleared.push('watch_asked_at')
   }
 
   if (Object.keys(updates).length > 0) {
     await redis.hset(`${PREFIX}${body.requestId}`, updates)
   }
+
+  await patchMetaInSnapshot(body.requestId, updates, cleared)
 
   return NextResponse.json({ ok: true })
 }

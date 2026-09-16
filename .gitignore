@@ -15,3 +15,5 @@ dist/
 tsconfig.tsbuildinfo
 next-env.d.ts
 marketing/
+# Contains learner names, phone numbers and emails. This repo is public.
+backups/

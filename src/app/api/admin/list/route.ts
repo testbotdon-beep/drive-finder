@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { listRequests, getInstructors, getRedis } from '@/lib/db'
+import { getInstructors } from '@/lib/db'
+import { getSnapshot, rebuildSnapshot } from '@/lib/snapshot'
 
 export async function GET(req: NextRequest) {
   const auth = req.headers.get('authorization')
@@ -8,36 +9,24 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
   }
 
-  const requests = await listRequests()
+  // One GET of a single gzipped key, instead of an LRANGE plus two HGETALLs per
+  // request. At 462 requests that was ~926 Redis commands on every 2-minute
+  // poll, which is what burned through the monthly plan allowance. ?rebuild=1
+  // forces a re-read from the source hashes if the cache ever looks wrong.
+  const force = req.nextUrl.searchParams.get('rebuild') === '1'
+  const snap = force ? await rebuildSnapshot() : await getSnapshot()
+
+  // Instructors come from a JSON file on disk, so they cost nothing.
   const instructors = getInstructors().filter((i) => i.is_active)
 
-  const redis = getRedis()
-  const metaMap: Record<string, Record<string, string>> = {}
-
-  // One pipelined round trip, not one HTTP request per request id. Promise.all
-  // here meant 450+ separate calls to Upstash on every poll, which took 3-6s and
-  // intermittently failed the whole route ("Failed to load" in the dashboard).
-  // Cost grows with the request count, so this only ever got worse.
-  const metaPipeline = redis.pipeline()
-  for (const r of requests) {
-    metaPipeline.hgetall(`drivefinder:req-meta:${r.id}`)
-  }
-  // Always at least one command, so the pipeline is never empty even with no requests.
-  metaPipeline.get('drivefinder:earnings-adjustment')
-  const pipelineResults = await metaPipeline.exec()
-
-  const metaResults = pipelineResults.slice(0, requests.length)
-  const adjustmentRaw = pipelineResults[requests.length]
-
-  requests.forEach((r, idx) => {
-    const meta = metaResults[idx] as Record<string, string> | null
-    if (meta && Object.keys(meta).length > 0) {
-      metaMap[r.id] = meta
-    }
+  return NextResponse.json({
+    requests: snap.requests,
+    instructors,
+    meta: snap.meta,
+    adjustment_cents: snap.adjustment_cents,
+    // Folded in so the dashboard no longer needs a second polling request.
+    statuses: snap.statuses,
+    dates: snap.dates,
+    built_at: snap.built_at,
   })
-
-  // Manual earnings correction (e.g. watch fees erased by watch-list removals). See drivefinder:earnings-adjustment-note.
-  const adjustment_cents = Number(adjustmentRaw) || 0
-
-  return NextResponse.json({ requests, instructors, meta: metaMap, adjustment_cents })
 }

@@ -520,7 +520,7 @@ function Dashboard({ password, onLogout }: { password: string; onLogout: () => v
             ) : (
               <div className="space-y-4">
                 {filtered.map((r) => (
-                  <RequestCard key={r.id} request={r} instructors={instructors} password={password} onChange={load} contactStatus={contactStatus} onContactUpdate={updateContactStatus} instructorNotes={instructorNotes} />
+                  <RequestCard key={r.id} request={r} instructors={instructors} password={password} onChange={load} contactStatus={contactStatus} onContactUpdate={updateContactStatus} instructorNotes={instructorNotes} meta={metaMap[r.id]} />
                 ))}
               </div>
             )}
@@ -715,9 +715,9 @@ function Empty({ text }: { text: string }) {
 }
 
 function RequestCard({
-  request, instructors, password, onChange, contactStatus, onContactUpdate, instructorNotes,
+  request, instructors, password, onChange, contactStatus, onContactUpdate, instructorNotes, meta,
 }: {
-  request: Request; instructors: Instructor[]; password: string; onChange: () => void; contactStatus: Record<string, string>; onContactUpdate: (id: string, status: string) => void; instructorNotes: Record<string, string>
+  request: Request; instructors: Instructor[]; password: string; onChange: () => void; contactStatus: Record<string, string>; onContactUpdate: (id: string, status: string) => void; instructorNotes: Record<string, string>; meta: Record<string, string> | undefined
 }) {
   const [selected, setSelected] = useState<Set<string>>(new Set())
   const [notes, setNotes] = useState('')
@@ -733,28 +733,22 @@ function RequestCard({
   const [watchAskedAt, setWatchAskedAt] = useState('')
   const [metaLoaded, setMetaLoaded] = useState(false)
 
+  // Seeded from the meta the list call already returned. This used to be a
+  // fetch per card, so rendering the dashboard cost one extra Redis HGETALL for
+  // every visible request on top of the list itself.
   useEffect(() => {
-    if (!metaLoaded) {
-      fetch(`/api/admin/update-notes?requestId=${request.id}`, {
-        headers: { Authorization: `Bearer ${password}` },
-      })
-        .then((r) => r.json())
-        .then((d) => {
-          if (d.meta) {
-            setRound(parseInt(String(d.meta.round)) || 1)
-            setStage(String(d.meta.stage || ''))
-            setStageNotes(String(d.meta.notes || ''))
-            setFollowUpAt(String(d.meta.follow_up_at || ''))
-            const ec = d.meta.earned_cents ? parseInt(String(d.meta.earned_cents), 10) : NaN
-            setEarnedCents(Number.isFinite(ec) ? ec : null)
-            setWatchPaidAt(String(d.meta.watch_paid_at || ''))
-            setWatchAskedAt(String(d.meta.watch_asked_at || ''))
-          }
-          setMetaLoaded(true)
-        })
-        .catch(() => setMetaLoaded(true))
-    }
-  }, [request.id, password, metaLoaded])
+    if (metaLoaded) return
+    const m = meta || {}
+    setRound(parseInt(String(m.round)) || 1)
+    setStage(String(m.stage || ''))
+    setStageNotes(String(m.notes || ''))
+    setFollowUpAt(String(m.follow_up_at || ''))
+    const ec = m.earned_cents ? parseInt(String(m.earned_cents), 10) : NaN
+    setEarnedCents(Number.isFinite(ec) ? ec : null)
+    setWatchPaidAt(String(m.watch_paid_at || ''))
+    setWatchAskedAt(String(m.watch_asked_at || ''))
+    setMetaLoaded(true)
+  }, [request.id, meta, metaLoaded])
 
   function saveMeta(updates: { round?: number; stage?: string; notes?: string; follow_up_at?: string; earned_cents?: number | null; watch_paid_at?: string; watch_asked_at?: string }) {
     if (updates.round !== undefined) setRound(updates.round)

@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getRedis } from '@/lib/db'
+import { getSnapshot, patchStatusInSnapshot } from '@/lib/snapshot'
 
 const KEY = 'drivefinder:instructor-status'
 const DATE_KEY = 'drivefinder:instructor-status-date'
@@ -11,12 +12,10 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
   }
 
-  const redis = getRedis()
-  const [statuses, dates] = await Promise.all([
-    redis.hgetall(KEY),
-    redis.hgetall(DATE_KEY),
-  ])
-  return NextResponse.json({ statuses: statuses || {}, dates: dates || {} })
+  // Served from the same cached snapshot as /api/admin/list, so polling this
+  // costs one GET rather than two HGETALLs of a 114-field hash.
+  const snap = await getSnapshot()
+  return NextResponse.json({ statuses: snap.statuses, dates: snap.dates })
 }
 
 export async function POST(req: NextRequest) {
@@ -37,6 +36,7 @@ export async function POST(req: NextRequest) {
       redis.hdel(KEY, body.instructorId),
       redis.hdel(DATE_KEY, body.instructorId),
     ])
+    await patchStatusInSnapshot(body.instructorId, null, null)
   } else {
     const date = typeof body.updated_at === 'string' && /^\d{4}-\d{2}-\d{2}T/.test(body.updated_at)
       ? body.updated_at
@@ -45,6 +45,7 @@ export async function POST(req: NextRequest) {
       redis.hset(KEY, { [body.instructorId]: body.status }),
       redis.hset(DATE_KEY, { [body.instructorId]: date }),
     ])
+    await patchStatusInSnapshot(body.instructorId, body.status, date)
   }
   return NextResponse.json({ ok: true })
 }
