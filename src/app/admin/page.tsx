@@ -414,7 +414,15 @@ function Dashboard({ password, onLogout }: { password: string; onLogout: () => v
         leadEarned += base + round2Paid
       }
     }
-    if (meta?.watch_paid_at) leadEarned += 900
+    // watch_fee_cents is what they actually paid. Free goodwill adds store 0, so
+    // they stop counting as $9. Older rows without the field predate it and were
+    // all standard $9 watchers.
+    if (meta?.watch_paid_at) {
+      const fee = meta.watch_fee_cents !== undefined && meta.watch_fee_cents !== ''
+        ? parseInt(String(meta.watch_fee_cents), 10)
+        : 900
+      leadEarned += Number.isFinite(fee) ? fee : 900
+    }
     return sum + leadEarned
   }, adjustmentCents)
 
@@ -780,6 +788,7 @@ function RequestCard({
   const [watchPaidAt, setWatchPaidAt] = useState('')
   const [watchAskedAt, setWatchAskedAt] = useState('')
   const [watchRemovedAt, setWatchRemovedAt] = useState('')
+  const [watchFeeCents, setWatchFeeCents] = useState<number | null>(null)
   const [metaLoaded, setMetaLoaded] = useState(false)
 
   // Seeded from the meta the list call already returned. This used to be a
@@ -797,10 +806,12 @@ function RequestCard({
     setWatchPaidAt(String(m.watch_paid_at || ''))
     setWatchAskedAt(String(m.watch_asked_at || ''))
     setWatchRemovedAt(String(m.watch_removed_at || ''))
+    const wf = m.watch_fee_cents !== undefined && m.watch_fee_cents !== '' ? parseInt(String(m.watch_fee_cents), 10) : NaN
+    setWatchFeeCents(Number.isFinite(wf) ? wf : null)
     setMetaLoaded(true)
   }, [request.id, meta, metaLoaded])
 
-  function saveMeta(updates: { round?: number; stage?: string; notes?: string; follow_up_at?: string; earned_cents?: number | null; watch_paid_at?: string; watch_asked_at?: string; watch_removed_at?: string }) {
+  function saveMeta(updates: { round?: number; stage?: string; notes?: string; follow_up_at?: string; earned_cents?: number | null; watch_paid_at?: string; watch_asked_at?: string; watch_removed_at?: string; watch_fee_cents?: number }) {
     if (updates.round !== undefined) setRound(updates.round)
     if (updates.stage !== undefined) setStage(updates.stage)
     if (updates.notes !== undefined) setStageNotes(updates.notes)
@@ -809,6 +820,7 @@ function RequestCard({
     if (updates.watch_paid_at !== undefined) setWatchPaidAt(updates.watch_paid_at)
     if (updates.watch_asked_at !== undefined) setWatchAskedAt(updates.watch_asked_at)
     if (updates.watch_removed_at !== undefined) setWatchRemovedAt(updates.watch_removed_at)
+    if (updates.watch_fee_cents !== undefined) setWatchFeeCents(updates.watch_fee_cents)
     fetch('/api/admin/update-notes', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${password}` },
@@ -1115,7 +1127,6 @@ function RequestCard({
         const templates = {
           followUp: `Hi ${firstName}, following up on if you'd like to proceed with us sending you the PDI's contact. Please do let us know, thanks!`,
           matchFound: `Hi ${firstName}, thanks for using Drive Finder SG!\n\nGood news! We found an instructor for you at ${centre}. Please have a look at the screenshot below for proof of our conversation with the PDI.\n\nTo get his details to message him, please PayNow $19 to UEN: 202446262C. Name of recipient should automatically show Uniq Labs PTE LTD upon UEN entry.\n\nPlease let us know once paid, and upon confirmation we'll send you his details right away.\n\nCongrats, and all the best for your driving journey!\n\n${DRIVE_LAB_PITCH}`,
-          watchListUpsell: `We check PDI availability periodically and slots from other PDIs may open up.\n\nIf for any reason you want to change instructor within the next 30 days, we can put you on our watch list for the next 30 days for a one-off fee of $10. If a slot opens up in that window, you get the contact. No extra charges after the one-off fee of $10.\n\nDo let us know if you want us to add you to the watch list!`,
           pdiDelivery: `Received payment! Here is the PDI info as shown below.\n\nPDI Info:\n\n${pdiBlocks}\n\nPlease do ask any questions you may have to the PDI from here on out and let your friends know about our service! All the best on your driving journey!\n\nIf you have any follow up questions to ask us, please text our business account at: +65 8119 0308.`,
           round2Offer: `Hey ${firstName}, just an update. I checked with the top rated instructors at ${centre} for ${transmission} and they all seem to be fully booked at the moment.\n\nI do have a few more instructors at ${centre} that I can check with slightly lower pass rates, or I can check other centres like ${otherCentres} for you.\n\nEither option costs $10 for the extended search, excluding the contact reveal fee if we successfully find you a match. Let me know which you'd prefer or if you'd like to leave it for now, no worries either way!`,
           round2Paid: `Ok great, please PayNow $10 to UEN: 202446262C. Name of recipient should automatically show Uniq Labs PTE LTD upon UEN entry.\n\nPlease let us know once paid, and upon confirmation we'll start right away!`,
@@ -1130,17 +1141,11 @@ function RequestCard({
             <div className="flex flex-wrap gap-1.5">
               <TplBtn href={wa(templates.followUp)} color="blue">Follow Up</TplBtn>
               <TplBtn href={wa(templates.matchFound)} color="emerald">Match Found + $19 PayNow</TplBtn>
-              <TplBtn href={wa(templates.watchListUpsell)} color="purple">Watch List Upsell (+$10)</TplBtn>
               {selectedInstructors.length > 0 && (
                 <a
                   href={wa(templates.pdiDelivery)}
                   target="_blank"
                   rel="noreferrer"
-                  onClick={(e) => {
-                    if (!window.confirm(`Reminder: send the Watch List Upsell (+$10) to ${firstName} AFTER this delivery.\n\nClick OK to proceed with delivery now.\nClick Cancel if you want to do something else first.`)) {
-                      e.preventDefault()
-                    }
-                  }}
                   className="px-3 py-1.5 rounded-lg text-xs font-semibold border transition bg-emerald-500/15 hover:bg-emerald-500/25 text-emerald-300 border-emerald-500/30"
                 >
                   Send PDI Info ({selectedInstructors.length}) ✅
@@ -1255,7 +1260,9 @@ function RequestCard({
                     : daysLeft === 0 ? 'Last day'
                     : `Expired ${Math.abs(daysLeft || 0)}d ago`}
                 </div>
-                <span className="text-[11px] text-emerald-500/80 font-semibold">$9 paid</span>
+                <span className={`text-[11px] font-semibold ${watchFeeCents === 0 ? 'text-cyan-400' : 'text-emerald-500/80'}`}>
+                  {watchFeeCents === 0 ? 'Free (goodwill)' : `$${((watchFeeCents ?? 900) / 100).toFixed(0)} paid`}
+                </span>
                 <span className="text-[11px] text-slate-500">{new Date(watchPaidAt).toLocaleDateString('en-SG', { timeZone: 'Asia/Singapore' })}</span>
                 {!delivered && (watchRemovedAt ? (
                   <button
@@ -1281,7 +1288,7 @@ function RequestCard({
                       Asked {new Date(watchAskedAt).toLocaleDateString('en-SG', { timeZone: 'Asia/Singapore' })}
                     </div>
                     <button
-                      onClick={() => saveMeta({ watch_paid_at: new Date().toISOString() })}
+                      onClick={() => saveMeta({ watch_paid_at: new Date().toISOString(), watch_fee_cents: 900 })}
                       className="px-2 py-1 rounded-md text-[11px] font-semibold bg-emerald-500/10 text-emerald-400 hover:text-emerald-300 border border-emerald-500/20 transition"
                     >
                       Mark watch paid ($9)
@@ -1302,7 +1309,7 @@ function RequestCard({
                       Mark as asked
                     </button>
                     <button
-                      onClick={() => saveMeta({ watch_paid_at: new Date().toISOString() })}
+                      onClick={() => saveMeta({ watch_paid_at: new Date().toISOString(), watch_fee_cents: 900 })}
                       className="px-2 py-1 rounded-md text-[11px] font-semibold bg-emerald-500/10 text-emerald-400 hover:text-emerald-300 border border-emerald-500/20 transition"
                     >
                       Mark watch paid ($9)
@@ -1529,7 +1536,7 @@ function RequestCard({
               <TplBtn href={wa(unresponsiveTemplate)} color="amber">PDI Unresponsive · Free Watch Offer</TplBtn>
               {!watchPaidAt && (
                 <button
-                  onClick={() => saveMeta({ watch_paid_at: new Date().toISOString() })}
+                  onClick={() => saveMeta({ watch_paid_at: new Date().toISOString(), watch_fee_cents: 0 })}
                   className="px-3 py-1.5 rounded-lg text-xs font-semibold bg-cyan-500/15 hover:bg-cyan-500/25 text-cyan-300 border border-cyan-500/30 transition"
                 >
                   Add to Watch List (Free Goodwill)

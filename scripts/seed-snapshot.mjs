@@ -85,7 +85,11 @@ for (const r of snapshot.requests) {
   }
   if (r.status === 'delivered') delivered++
   if (m.watch_paid_at) {
-    earned += WATCH_FEE
+    // Free goodwill adds store watch_fee_cents 0 and are not revenue.
+    const fee = m.watch_fee_cents !== undefined && m.watch_fee_cents !== ''
+      ? Number(m.watch_fee_cents)
+      : WATCH_FEE
+    earned += Number.isFinite(fee) ? fee : WATCH_FEE
     watch++
   }
 }

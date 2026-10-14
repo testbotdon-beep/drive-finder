@@ -44,6 +44,9 @@ export async function POST(req: NextRequest) {
   // Marks someone off the active watch list without touching watch_paid_at,
   // which is the record of the $9 they actually paid.
   if (body.watch_removed_at !== undefined) updates.watch_removed_at = body.watch_removed_at
+  // What they actually paid for the watch spot. Free goodwill adds store 0 so
+  // they are not counted as revenue.
+  if (body.watch_fee_cents !== undefined) updates.watch_fee_cents = String(body.watch_fee_cents)
 
   if (body.follow_up_at === '') {
     await redis.hdel(`${PREFIX}${body.requestId}`, 'follow_up_at')
