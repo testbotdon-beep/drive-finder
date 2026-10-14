@@ -41,6 +41,9 @@ export async function POST(req: NextRequest) {
   if (body.earned_cents !== undefined) updates.earned_cents = String(body.earned_cents)
   if (body.watch_paid_at !== undefined) updates.watch_paid_at = body.watch_paid_at
   if (body.watch_asked_at !== undefined) updates.watch_asked_at = body.watch_asked_at
+  // Marks someone off the active watch list without touching watch_paid_at,
+  // which is the record of the $9 they actually paid.
+  if (body.watch_removed_at !== undefined) updates.watch_removed_at = body.watch_removed_at
 
   if (body.follow_up_at === '') {
     await redis.hdel(`${PREFIX}${body.requestId}`, 'follow_up_at')
@@ -61,6 +64,11 @@ export async function POST(req: NextRequest) {
     await redis.hdel(`${PREFIX}${body.requestId}`, 'watch_asked_at')
     delete updates.watch_asked_at
     cleared.push('watch_asked_at')
+  }
+  if (body.watch_removed_at === '') {
+    await redis.hdel(`${PREFIX}${body.requestId}`, 'watch_removed_at')
+    delete updates.watch_removed_at
+    cleared.push('watch_removed_at')
   }
 
   if (Object.keys(updates).length > 0) {

@@ -94,7 +94,7 @@ function Dashboard({ password, onLogout }: { password: string; onLogout: () => v
   const [instructors, setInstructors] = useState<Instructor[]>([])
   const [loading, setLoading] = useState(true)
   const [tab, setTab] = useState<'requests' | 'instructors'>('requests')
-  const [filter, setFilter] = useState<'active' | 'due' | 'watch_candidate' | 'watch_asked' | 'watch_list' | 'completed' | 'all'>('active')
+  const [filter, setFilter] = useState<'active' | 'due' | 'watch_candidate' | 'watch_asked' | 'watch_list' | 'watch_delivered' | 'completed' | 'all'>('active')
   const [centreFilter, setCentreFilter] = useState<string>('ALL')
   const [statusFilter, setStatusFilter] = useState<'ALL' | 'yes' | 'contacted' | 'no' | 'done' | 'unmarked'>('ALL')
   const [refSearch, setRefSearch] = useState<string>('')
@@ -152,10 +152,10 @@ function Dashboard({ password, onLogout }: { password: string; onLogout: () => v
     if (status === 'yes') {
       const inst = instructors.find((i) => i.id === instructorId)
       if (inst) {
+        // Only people actually still on the list. Prompting Don to deliver to
+        // someone expired or taken off would send him chasing the wrong person.
         const matchingWatchList = requests.filter((r) => {
-          const meta = metaMap[r.id]
-          if (!meta?.watch_paid_at) return false
-          if (['captured', 'delivered'].includes(r.status)) return false
+          if (!isWatchActive(r)) return false
           if (r.test_centre !== 'ANY' && r.test_centre !== inst.test_centre) return false
           if (String(r.class_type) !== String(inst.class_type)) return false
           return true
@@ -172,9 +172,7 @@ function Dashboard({ password, onLogout }: { password: string; onLogout: () => v
 
   function watchListMatchCount(instructor: Instructor): number {
     return requests.filter((r) => {
-      const meta = metaMap[r.id]
-      if (!meta?.watch_paid_at) return false
-      if (['captured', 'delivered'].includes(r.status)) return false
+      if (!isWatchActive(r)) return false
       if (r.test_centre !== 'ANY' && r.test_centre !== instructor.test_centre) return false
       if (String(r.class_type) !== String(instructor.class_type)) return false
       return true
@@ -331,12 +329,35 @@ function Dashboard({ password, onLogout }: { password: string; onLogout: () => v
     return !completedStatuses.includes(r.status)
   }
 
-  const isOnWatchList = (r: Request) => {
-    const meta = metaMap[r.id]
-    if (!meta?.watch_paid_at) return false
-    if (r.status === 'voided') return false
-    return true
+  // The watch fee is revenue and is kept forever; being on the active list is a
+  // separate, reversible thing marked by watch_removed_at. Clearing watch_paid_at
+  // to take someone off the list used to wipe the $9 they had already paid.
+  const WATCH_WINDOW_DAYS = 30
+
+  const hasPaidWatch = (r: Request) => Boolean(metaMap[r.id]?.watch_paid_at)
+
+  const watchDaysLeft = (r: Request): number | null => {
+    const paid = metaMap[r.id]?.watch_paid_at
+    if (!paid) return null
+    return WATCH_WINDOW_DAYS - Math.floor((Date.now() - new Date(paid).getTime()) / (1000 * 60 * 60 * 24))
   }
+
+  /** Paid, still inside the 30 day window, not delivered, not manually removed. */
+  const isWatchActive = (r: Request) => {
+    if (!hasPaidWatch(r)) return false
+    if (r.status === 'voided') return false
+    if (completedStatuses.includes(r.status)) return false
+    if (metaMap[r.id]?.watch_removed_at) return false
+    const left = watchDaysLeft(r)
+    return left !== null && left >= 0
+  }
+
+  /** Paid and their match was delivered. Gets its own section. */
+  const isWatchDelivered = (r: Request) => hasPaidWatch(r) && completedStatuses.includes(r.status)
+
+  /** Paid but out of the window or removed by hand, and never delivered. Lives in All. */
+  const isWatchExpired = (r: Request) =>
+    hasPaidWatch(r) && r.status !== 'voided' && !isWatchActive(r) && !isWatchDelivered(r)
 
   const watchListReadyMatch = (r: Request): boolean => {
     return instructors.some((i) => {
@@ -348,10 +369,12 @@ function Dashboard({ password, onLogout }: { password: string; onLogout: () => v
 
   const watchListSortKey = (r: Request) => {
     const paidAt = String(metaMap[r.id]?.watch_paid_at || '')
-    if (completedStatuses.includes(r.status)) return 'Z' + paidAt // delivered → bottom
-    if (watchListReadyMatch(r)) return 'A' + paidAt // ready → top
-    return 'M' + paidAt // waiting → middle
+    if (watchListReadyMatch(r)) return 'A' + paidAt // an instructor is available → top
+    return 'M' + paidAt // still waiting
   }
+  // Most recently delivered first.
+  const watchDeliveredSortKey = (r: Request) =>
+    String(r.delivered_at || metaMap[r.id]?.watch_paid_at || '')
   const watchAskedSortKey = (r: Request) => String(metaMap[r.id]?.watch_asked_at || '')
 
   const refQuery = refSearch.trim().toLowerCase()
@@ -364,7 +387,8 @@ function Dashboard({ password, onLogout }: { password: string; onLogout: () => v
     filter === 'due' ? requests.filter(isDue).sort((a, b) => dueSortKey(a).localeCompare(dueSortKey(b))) :
     filter === 'watch_candidate' ? requests.filter(isWatchCandidate) :
     filter === 'watch_asked' ? requests.filter(isWatchAsked).sort((a, b) => watchAskedSortKey(b).localeCompare(watchAskedSortKey(a))) :
-    filter === 'watch_list' ? requests.filter(isOnWatchList).sort((a, b) => watchListSortKey(a).localeCompare(watchListSortKey(b))) :
+    filter === 'watch_list' ? requests.filter(isWatchActive).sort((a, b) => watchListSortKey(a).localeCompare(watchListSortKey(b))) :
+    filter === 'watch_delivered' ? requests.filter(isWatchDelivered).sort((a, b) => watchDeliveredSortKey(b).localeCompare(watchDeliveredSortKey(a))) :
     requests)
 
   const submittedCount = requests.filter((r) => r.status === 'submitted').length
@@ -373,7 +397,9 @@ function Dashboard({ password, onLogout }: { password: string; onLogout: () => v
   const dueCount = requests.filter(isDue).length
   const watchCandidateCount = requests.filter(isWatchCandidate).length
   const watchAskedCount = requests.filter(isWatchAsked).length
-  const watchListCount = requests.filter(isOnWatchList).length
+  const watchListCount = requests.filter(isWatchActive).length
+  const watchDeliveredCount = requests.filter(isWatchDelivered).length
+  const watchExpiredCount = requests.filter(isWatchExpired).length
 
   const totalEarned = requests.reduce((sum, r) => {
     const meta = metaMap[r.id]
@@ -505,6 +531,9 @@ function Dashboard({ password, onLogout }: { password: string; onLogout: () => v
               <FilterBtn active={filter === 'watch_list'} onClick={() => setFilter('watch_list')}>
                 Watch list ({watchListCount})
               </FilterBtn>
+              <FilterBtn active={filter === 'watch_delivered'} onClick={() => setFilter('watch_delivered')}>
+                Watch delivered ({watchDeliveredCount})
+              </FilterBtn>
               <FilterBtn active={filter === 'completed'} onClick={() => setFilter('completed')}>Completed ({completedCount})</FilterBtn>
               <FilterBtn active={filter === 'all'} onClick={() => setFilter('all')}>All ({requests.length})</FilterBtn>
               <input
@@ -532,7 +561,8 @@ function Dashboard({ password, onLogout }: { password: string; onLogout: () => v
                 filter === 'due' ? 'Nothing to follow up on today. Clear inbox.' :
                 filter === 'watch_candidate' ? 'No watch list candidates right now.' :
                 filter === 'watch_asked' ? 'No leads in the asked queue right now.' :
-                filter === 'watch_list' ? 'Nobody on the watch list yet.' :
+                filter === 'watch_list' ? 'Nobody active on the watch list. Expired ones are under All.' :
+                filter === 'watch_delivered' ? 'No watch list matches delivered yet.' :
                 'No requests yet.'
               } />
             ) : (
@@ -749,6 +779,7 @@ function RequestCard({
   const [earnedCents, setEarnedCents] = useState<number | null>(null)
   const [watchPaidAt, setWatchPaidAt] = useState('')
   const [watchAskedAt, setWatchAskedAt] = useState('')
+  const [watchRemovedAt, setWatchRemovedAt] = useState('')
   const [metaLoaded, setMetaLoaded] = useState(false)
 
   // Seeded from the meta the list call already returned. This used to be a
@@ -765,10 +796,11 @@ function RequestCard({
     setEarnedCents(Number.isFinite(ec) ? ec : null)
     setWatchPaidAt(String(m.watch_paid_at || ''))
     setWatchAskedAt(String(m.watch_asked_at || ''))
+    setWatchRemovedAt(String(m.watch_removed_at || ''))
     setMetaLoaded(true)
   }, [request.id, meta, metaLoaded])
 
-  function saveMeta(updates: { round?: number; stage?: string; notes?: string; follow_up_at?: string; earned_cents?: number | null; watch_paid_at?: string; watch_asked_at?: string }) {
+  function saveMeta(updates: { round?: number; stage?: string; notes?: string; follow_up_at?: string; earned_cents?: number | null; watch_paid_at?: string; watch_asked_at?: string; watch_removed_at?: string }) {
     if (updates.round !== undefined) setRound(updates.round)
     if (updates.stage !== undefined) setStage(updates.stage)
     if (updates.notes !== undefined) setStageNotes(updates.notes)
@@ -776,6 +808,7 @@ function RequestCard({
     if (updates.earned_cents !== undefined) setEarnedCents(updates.earned_cents)
     if (updates.watch_paid_at !== undefined) setWatchPaidAt(updates.watch_paid_at)
     if (updates.watch_asked_at !== undefined) setWatchAskedAt(updates.watch_asked_at)
+    if (updates.watch_removed_at !== undefined) setWatchRemovedAt(updates.watch_removed_at)
     fetch('/api/admin/update-notes', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${password}` },
@@ -1192,8 +1225,10 @@ function RequestCard({
         </div>
       )}
 
-      {/* Watch list */}
-      {(['submitted', 'confirmed', 'pending'].includes(request.status)) && metaLoaded && (() => {
+      {/* Watch list. Also shown once delivered, so the Watch delivered section
+          still displays the fee that was paid. */}
+      {(['submitted', 'confirmed', 'pending'].includes(request.status) || Boolean(watchPaidAt)) && metaLoaded && (() => {
+        const delivered = ['delivered', 'captured'].includes(request.status)
         const daysLeft = watchPaidAt
           ? 30 - Math.floor((Date.now() - new Date(watchPaidAt).getTime()) / (1000 * 60 * 60 * 24))
           : null
@@ -1209,16 +1244,34 @@ function RequestCard({
             <span className="text-[11px] font-bold text-slate-500 uppercase tracking-widest">Watch list</span>
             {watchPaidAt ? (
               <>
-                <div className={`px-2 py-1 rounded-md text-[11px] font-semibold border ${colorClasses[badgeColor]}`}>
-                  {daysLeft !== null && daysLeft > 0 ? `${daysLeft}d left` : daysLeft === 0 ? 'Last day' : `Expired ${Math.abs(daysLeft || 0)}d ago`}
+                <div className={`px-2 py-1 rounded-md text-[11px] font-semibold border ${
+                  delivered ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20'
+                  : watchRemovedAt ? 'bg-white/5 text-slate-400 border-white/5'
+                  : colorClasses[badgeColor]
+                }`}>
+                  {delivered ? 'Delivered'
+                    : watchRemovedAt ? 'Off the list'
+                    : daysLeft !== null && daysLeft > 0 ? `${daysLeft}d left`
+                    : daysLeft === 0 ? 'Last day'
+                    : `Expired ${Math.abs(daysLeft || 0)}d ago`}
                 </div>
-                <span className="text-[11px] text-slate-500">paid {new Date(watchPaidAt).toLocaleDateString('en-SG', { timeZone: 'Asia/Singapore' })}</span>
-                <button
-                  onClick={() => { if (window.confirm('Remove from watch list?')) saveMeta({ watch_paid_at: '' }) }}
-                  className="px-2 py-1 rounded-md text-[11px] font-semibold bg-red-500/10 text-red-400 hover:text-red-300 border border-red-500/20 transition"
-                >
-                  Remove
-                </button>
+                <span className="text-[11px] text-emerald-500/80 font-semibold">$9 paid</span>
+                <span className="text-[11px] text-slate-500">{new Date(watchPaidAt).toLocaleDateString('en-SG', { timeZone: 'Asia/Singapore' })}</span>
+                {!delivered && (watchRemovedAt ? (
+                  <button
+                    onClick={() => saveMeta({ watch_removed_at: '' })}
+                    className="px-2 py-1 rounded-md text-[11px] font-semibold bg-blue-500/10 text-blue-400 hover:text-blue-300 border border-blue-500/20 transition"
+                  >
+                    Put back on list
+                  </button>
+                ) : (
+                  <button
+                    onClick={() => { if (window.confirm('Take off the active watch list?\n\nThe $9 they paid stays in your earnings. You can put them back any time.')) saveMeta({ watch_removed_at: new Date().toISOString() }) }}
+                    className="px-2 py-1 rounded-md text-[11px] font-semibold bg-red-500/10 text-red-400 hover:text-red-300 border border-red-500/20 transition"
+                  >
+                    Take off list
+                  </button>
+                ))}
               </>
             ) : (
               <>
