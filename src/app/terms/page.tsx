@@ -25,14 +25,22 @@ export default function TermsPage() {
           <Section title="3. Watch list">
             <p>If the initial search does not produce a responding instructor, we may offer to add you to our 30-day
             watch list (the &ldquo;Watch List&rdquo;) for a one-off fee of SGD $9 (the &ldquo;Watch List Fee&rdquo;).</p>
-            <p className="mt-3">During the 30-day watch period, we will keep an eye out for instructor availability and
-            re-check with instructors at our own discretion. If a slot opens up within the 30-day window, we will send you
-            the matched instructor's contact details. <strong>No additional charges apply once the Watch List Fee has been paid</strong>
-            &mdash; the $9 covers both the watch period and the contact reveal if a match is found.</p>
-            <p className="mt-3">The Watch List Fee is <strong>non-refundable in all cases</strong>. The $9 covers the time
-            spent watching for availability on your behalf, regardless of outcome. This includes:</p>
+            <p className="mt-3"><strong>What the Watch List Fee buys is a place in the queue, not a search.</strong> We do not
+            commit to contacting any instructor during the 30-day period, and we do not commit to checking on any schedule
+            or at any minimum frequency. We may check often, rarely, or not at all during your 30 days. This is at our sole
+            discretion and depends on our workload and on what other work we happen to be doing.</p>
+            <p className="mt-3">What you do get is priority. If, at any point during your 30-day period, we contact an
+            instructor at your test centre for your transmission type and that instructor confirms they are taking new
+            students, we will send you their contact details ahead of anyone who is not on the Watch List.
+            <strong> No additional charges apply once the Watch List Fee has been paid.</strong> The $9 covers both your place
+            in the queue and the contact reveal if a match is found.</p>
+            <p className="mt-3"><strong>The Watch List is a bet, and you may get nothing for your $9.</strong> If we do not
+            check during your 30 days, or we check and no instructor confirms availability, you receive no contact and the
+            fee is not returned. Please do not pay the Watch List Fee unless you accept that outcome.</p>
+            <p className="mt-3">The Watch List Fee is <strong>non-refundable in all cases</strong>, including:</p>
             <ul className="list-disc pl-6 mt-2 space-y-1">
               <li>No match is found within the 30-day window;</li>
+              <li>We do not contact any instructor during the 30-day window;</li>
               <li>You change your mind or decide not to proceed at any point during the watch period;</li>
               <li>A match is provided but you choose not to contact them;</li>
               <li>You do not like the matched instructor;</li>
