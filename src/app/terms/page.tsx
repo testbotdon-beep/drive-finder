@@ -40,7 +40,6 @@ export default function TermsPage() {
               <li>You decide to go through a driving school instead;</li>
               <li>You do not pass your driving test.</li>
             </ul>
-            <p className="mt-3">We will let you know when the watch period ends.</p>
             <p className="mt-3">The Watch List is optional. You are under no obligation to join. If you choose not to,
             no further charges apply.</p>
           </Section>
